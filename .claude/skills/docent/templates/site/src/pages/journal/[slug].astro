@@ -14,7 +14,7 @@ interface JournalModule {
 
 export async function getStaticPaths() {
   const modules = import.meta.glob<JournalModule>(
-    '../../../../content/journal/*.mdx',
+    '../../../content/journal/*.mdx',
     { eager: true }
   );
   return Object.entries(modules).map(([path, mod]) => {
