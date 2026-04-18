@@ -1,0 +1,11 @@
+{
+  "$schema": "../../.claude/skills/docent/schemas/theme.schema.json",
+  "vibe": "editorial",
+  "accent": "#b45309",
+  "accentDark": "#f59e0b",
+  "heroImage": null,
+  "signals": {
+    "source": "metadata-heuristic",
+    "reasoning": "No logo or badges. The project is a documentation-site generator named after a museum guide, with prose-heavy README and SPEC — editorial is the obvious fit."
+  }
+}
