@@ -1,59 +1,76 @@
 # Docent — build status
 
-**As of this handoff (2026-04-18):** skill, prompts, schemas, and the
-Astro site template are all written. Docent has not yet been run against
-a real repo — dogfooding on this one is the next step.
+**As of 2026-04-18:** skill, Astro template, and the plugin-marketplace
+packaging are done. Docent ran on itself end-to-end; the dogfood site is
+live at [calumjs.github.io/docent](https://calumjs.github.io/docent/).
 
 ## What's done
 
-- [x] `README.md` — project pitch and install instructions
+- [x] `README.md` — project pitch and install instructions (plugin-based)
 - [x] `SPEC.md` — full technical specification
-- [x] `.claude/skills/docent/SKILL.md` — skill entry point
-- [x] `.claude/skills/docent/modes/*.md` — all five modes (init, update,
+- [x] `skills/docent/SKILL.md` — skill entry point
+- [x] `skills/docent/modes/*.md` — all five modes (init, update,
       digest, release, triage)
-- [x] `.claude/skills/docent/prompts/*.md` — overview, journal, status,
+- [x] `skills/docent/prompts/*.md` — overview, journal, status,
       theme system prompts; tone presets
-- [x] `.claude/skills/docent/schemas/*.json` — config, status,
-      frontmatter, theme schemas
+- [x] `skills/docent/schemas/*.json` — config, status, frontmatter,
+      theme schemas
 - [x] Design inheritance (SPEC §5.5): `theme.json`, four vibe presets
-      (editorial/technical/clinical/expressive), logo-analysis flow wired
-      into `init` Step 7.5; init-only invariant added to SKILL.md
-- [x] `.claude/skills/docent/templates/workflows/docent-deploy.yml` —
+      (editorial / technical / clinical / expressive), logo-analysis
+      flow wired into `init` Step 7.5; init-only invariant in SKILL.md
+- [x] `skills/docent/templates/workflows/docent-deploy.yml` —
       Pages deploy (primary path)
-- [x] `.claude/skills/docent/templates/workflows/docent-update.yml` and
+- [x] `skills/docent/templates/workflows/docent-update.yml` and
       `docent-digest.yml` — optional CI fallbacks (SPEC §6.7)
 - [x] SPEC §6 rewritten around Claude Code Routines as the primary
       scheduler; GitHub Actions reduced to the Pages deploy
+- [x] **Plugin-marketplace packaging** (SPEC §7.1): `.claude-plugin/`
+      metadata, `skills/docent/` at the plugin root, install reduces to
+      `/plugin marketplace add calumjs/docent` + `/plugin install docent@docent`
+- [x] **Dogfood:** ran `init` on this repo, fixed three real bugs the run
+      surfaced (off-by-one import paths in the site template; missing
+      `package-lock.json`; main/master substitution in the deploy
+      workflow), deployed the site.
 
 ## What's not done
 
-- [ ] **Dogfood on this repo.** Install the skill into this repo and run
-      `init`. Docent should generate a decent site for itself; if it
-      can't, that's a signal the prompts or template need work.
 - [ ] **Re-analyze-design path.** SPEC §5.5.4 reserves
       "Docent, re-analyze the design" as a future trigger to re-run the
       theme analysis. Not yet wired into any mode file.
-- [ ] **Verify the four vibe stylesheets in a browser** across light/dark
-      mode. They're written but haven't been rendered.
-- [ ] **Package install tested?** No — `npm install` has not been run on
-      the template yet. Version pins (`astro@^5`, `@astrojs/mdx@^4`) are
-      best-effort; may need to be adjusted once a real install happens.
+- [ ] **Verify the four vibe stylesheets in a browser** across
+      light/dark mode. Only `editorial` has been rendered.
+- [ ] **Commit-hook for content refresh.** Routines are daily; a README
+      or tag push doesn't reflect in the site until the next polling
+      run. Could add a small Action that fires the update routine via
+      the `/fire` API — needs a PAT.
+- [ ] **Re-install test on a second repo.** The dogfood repo was
+      bootstrapped from a raw skill drop, not from
+      `/plugin install docent@docent` — so the marketplace path hasn't
+      been exercised yet end-to-end.
 
-## How to try the init flow
+## How to install
 
-1. Drop `.claude/skills/docent/` into a test repo (or this repo).
-2. Run Claude Code in the repo and say "set up Docent."
-3. Watch the `init` mode run end-to-end: config generation, template copy,
-   content generation (overview / status / changelog / inaugural journal),
-   and theme analysis (Step 7.5).
-4. Review the PR it opens.
+In any Claude Code session inside your target repo:
+
+```
+/plugin marketplace add calumjs/docent
+/plugin install docent@docent
+```
+
+Then say "set up Docent for this repo." The `init` mode runs end-to-end:
+config generation, template copy via `${CLAUDE_PLUGIN_ROOT}`, content
+generation (overview / status / changelog / inaugural journal), theme
+analysis (Step 7.5), and opens a PR.
+
+After merging, enable Pages and set up the two routines — details in the
+PR description.
 
 ## Suggested next steps
 
-1. Dogfood on this very repo. If Docent can't generate a decent site for
-   Docent, the prompts need work before the template does.
-2. Iterate on the `init` prompts based on what the dogfood run produces.
-   The theme classifier is the highest-stakes prompt — if it picks a bad
-   vibe, the whole site feels wrong.
-3. Once the dogfood site looks right, verify all four vibes render well
-   by temporarily swapping the `vibe` field in `theme.json`.
+1. Install Docent on a second repo via the marketplace and verify the
+   `${CLAUDE_PLUGIN_ROOT}` template copy works as expected end-to-end.
+2. Close the commit-hook gap — small Action that fires the update
+   routine on `README.md` pushes and `v*` tag pushes.
+3. Render the three unused vibe stylesheets in the browser by temporarily
+   editing `docs/content/theme.json`. Find anything that breaks.
+4. Tag v0.1.0 once the above feels stable.

@@ -1,5 +1,5 @@
 {
-  "$schema": "./.claude/skills/docent/schemas/config.schema.json",
+  "$schema": "https://raw.githubusercontent.com/calumjs/docent/master/skills/docent/schemas/config.schema.json",
   "project": {
     "name": "Docent",
     "owner": "calumjs",

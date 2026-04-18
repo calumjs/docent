@@ -50,11 +50,18 @@ git checkout -b docent/init-$(date -u +%Y-%m-%d)
 ### Step 4 — Write `docent.config.json`
 
 Use values from Step 1 and Step 2. Schema in
-`.claude/skills/docent/schemas/config.schema.json`. Default contents:
+`${CLAUDE_PLUGIN_ROOT}/skills/docent/schemas/config.schema.json`.
+
+The generated `docent.config.json` is written into the user's repo, so
+its `$schema` field cannot reference `${CLAUDE_PLUGIN_ROOT}` (that
+expands at runtime inside the plugin, not in files users edit). Point
+at the raw-URL on GitHub instead — stable and IDE-friendly.
+
+Default contents:
 
 ```json
 {
-  "$schema": "./.claude/skills/docent/schemas/config.schema.json",
+  "$schema": "https://raw.githubusercontent.com/calumjs/docent/master/skills/docent/schemas/config.schema.json",
   "project": {
     "name": "{{repo name, human-cased}}",
     "owner": "{{github owner}}",
@@ -90,8 +97,19 @@ Use values from Step 1 and Step 2. Schema in
 
 ```bash
 mkdir -p docs
-cp -r .claude/skills/docent/templates/site/. docs/
+cp -r "${CLAUDE_PLUGIN_ROOT}/skills/docent/templates/site/." docs/
 ```
+
+Then generate `docs/package-lock.json` so the deploy workflow's
+`cache: npm` + `npm ci` don't fail on first push:
+
+```bash
+cd docs && npm install --ignore-scripts && cd ..
+```
+
+`--ignore-scripts` avoids running postinstall hooks from template deps;
+we only need the lock file, not a functional install. The resulting
+`docs/node_modules/` stays gitignored.
 
 The template is generic. It reads `docent.config.json` (site URL, project
 name, repo owner, section toggles) and `docs/content/theme.json` (vibe,
@@ -106,7 +124,7 @@ only GitHub Actions file Docent installs is the Pages deploy workflow:
 
 ```bash
 mkdir -p .github/workflows
-cp .claude/skills/docent/templates/workflows/docent-deploy.yml .github/workflows/
+cp "${CLAUDE_PLUGIN_ROOT}/skills/docent/templates/workflows/docent-deploy.yml" .github/workflows/
 ```
 
 The template's `on.push.branches` is `[main]` — the common default. If
@@ -185,10 +203,13 @@ ships one stylesheet per vibe; `theme.json` just picks which one loads.
 ### Step 8 — Commit and push
 
 ```bash
-git add docs/ docent.config.json .github/workflows/docent-deploy.yml
+git add docs/ docs/package-lock.json docent.config.json .github/workflows/docent-deploy.yml
 git commit -m "Docent: initial site scaffold"
 git push -u origin HEAD
 ```
+
+The lock file must be committed — the deploy workflow caches npm based on
+it, and `npm ci` requires it.
 
 ### Step 9 — Open the PR
 

@@ -23,13 +23,18 @@ The project has three visible layers:
   (zero hosted infrastructure, PR-gated output, structured content, same-repo
   versioning) and about what the project is deliberately not trying to be
   (not an API doc generator, not an issue tracker replacement).
-- **The skill** — `/.claude/skills/docent/`. Five modes (`init`, `update`,
+- **The skill** — `skills/docent/`. Five modes (`init`, `update`,
   `digest`, `release`, `triage`), each defined in its own markdown file.
   System prompts for overview writing, journal writing, issue summarizing,
   and theme classification. Schemas for everything it writes.
-- **The site template** — `/.claude/skills/docent/templates/site/`. An
+- **The site template** — `skills/docent/templates/site/`. An
   Astro project with seven routes, four distinct visual vibes (editorial,
   technical, clinical, expressive), and a small set of components.
+- **The plugin packaging** — `.claude-plugin/marketplace.json` and
+  `.claude-plugin/plugin.json`. Makes install a two-command job:
+  `/plugin marketplace add calumjs/docent` and
+  `/plugin install docent@docent`. No npm, no git submodules, no copy
+  commands.
 
 ## Scheduling decision
 

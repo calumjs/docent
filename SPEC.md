@@ -30,33 +30,44 @@ The skill is invoked through Claude Code — either locally by a maintainer, or 
 ### 2.1 Components
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         User's repository                        │
-│                                                                  │
-│  ┌───────────────────┐        ┌──────────────────────────────┐  │
-│  │  .claude/skills/  │        │  docs/                       │  │
-│  │  docent/          │        │  ├── content/   (AI-owned)   │  │
-│  │  (the skill)      │───────▶│  ├── src/       (human-owned)│  │
-│  │                   │        │  ├── public/                 │  │
-│  └───────────────────┘        │  └── dist/      (gitignored) │  │
-│           │                   └──────────────────────────────┘  │
-│           │                                   │                  │
-│           ▼                                   ▼                  │
-│  ┌───────────────────┐        ┌──────────────────────────────┐  │
-│  │ docent.config.    │        │ .github/workflows/           │  │
-│  │ json              │        │ ├── docent-update.yml        │  │
-│  │                   │        │ └── docent-deploy.yml        │  │
-│  └───────────────────┘        └──────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-           │                                   │
-           ▼                                   ▼
-  ┌───────────────────┐              ┌──────────────────────┐
-  │   Claude Code     │              │   GitHub Pages       │
-  │   (local or CI)   │              │   (deploy target)    │
-  └───────────────────┘              └──────────────────────┘
+┌──────────────────────┐        ┌──────────────────────────────────────┐
+│  Claude Code plugin  │        │         User's repository            │
+│  cache (global)      │        │                                      │
+│                      │        │  ┌───────────────────────────────┐  │
+│  ~/.claude/plugins/  │        │  │  docs/                        │  │
+│  cache/docent/       │───────▶│  │  ├── content/  (AI-owned)    │  │
+│  ├── skills/docent/  │        │  │  ├── src/      (human-owned) │  │
+│  │   └── (the skill) │        │  │  ├── public/                 │  │
+│  └── .claude-plugin/ │        │  │  └── dist/     (gitignored)  │  │
+│                      │        │  └───────────────────────────────┘  │
+└──────────────────────┘        │                  │                   │
+           │                    │                  ▼                   │
+           ▼                    │  ┌───────────────────────────────┐  │
+  ┌──────────────────┐          │  │ docent.config.json            │  │
+  │   Claude Code    │          │  │ .github/workflows/            │  │
+  │   (invokes skill │          │  │ └── docent-deploy.yml         │  │
+  │    in user repo) │          │  └───────────────────────────────┘  │
+  └──────────────────┘          └──────────────────────────────────────┘
+                                                  │
+                                                  ▼
+                                        ┌──────────────────────┐
+                                        │   GitHub Pages       │
+                                        │   (deploy target)    │
+                                        └──────────────────────┘
 ```
 
+The skill lives once, globally, inside the Claude Code plugin cache.
+Every repo that uses Docent invokes the same installed skill — the
+user's repo contains only Docent's output (`/docs/*`, `docent.config.json`)
+and the deploy workflow. Separation is enforced by having the skill copy
+its bundled templates via `${CLAUDE_PLUGIN_ROOT}` (see §7.1.3).
+
 ### 2.2 Directory layout in a user's repo
+
+Docent is installed as a Claude Code plugin (§7.1), so the skill's own
+files do NOT live in the user's repo — they live in Claude Code's plugin
+cache, globally per-machine. The user's repo only contains the files
+Docent generates and the deploy workflow:
 
 ```
 user-repo/
@@ -66,10 +77,11 @@ user-repo/
 │   │   ├── overview.mdx
 │   │   ├── status.json
 │   │   ├── changelog.mdx
+│   │   ├── theme.json
 │   │   └── journal/
 │   │       ├── 2026-04-13-weekly.mdx
 │   │       └── 2026-04-06-weekly.mdx
-│   ├── src/                      # human-owned site template
+│   ├── src/                      # Astro template (scaffolded by init, then human-owned)
 │   │   ├── layouts/
 │   │   ├── pages/
 │   │   ├── components/
@@ -77,13 +89,16 @@ user-repo/
 │   ├── public/                   # static assets (favicon, images)
 │   ├── astro.config.mjs
 │   ├── package.json
+│   ├── package-lock.json
 │   └── .gitignore                # ignores /docs/dist and /docs/node_modules
 ├── docent.config.json            # project-level Docent settings
-├── .claude/skills/docent/        # the skill itself
 └── .github/workflows/
-    ├── docent-update.yml         # scheduled: runs skill, opens PR
-    └── docent-deploy.yml         # on push to main: builds & deploys
+    └── docent-deploy.yml         # on push to default: builds & deploys to Pages
 ```
+
+The plugin itself, when installed, lives at something like
+`~/.claude/plugins/cache/docent/...` and is managed by Claude Code.
+Users never edit it directly.
 
 ### 2.3 Separation of concerns
 
@@ -103,7 +118,7 @@ The skill MUST NOT modify files outside `/docs/content/` (except during `init` m
 ### 3.1 Skill structure
 
 ```
-.claude/skills/docent/
+skills/docent/
 ├── SKILL.md                      # triggering description + mode dispatch
 ├── modes/
 │   ├── init.md                   # first-run scaffolding
@@ -300,7 +315,7 @@ Constraints:
 ```
 
 Constraints:
-- Schema defined in `.claude/skills/docent/schemas/status.schema.json`.
+- Schema defined in `skills/docent/schemas/status.schema.json`.
 - `summary` field is AI-written, kept under 200 characters.
 - Issues are grouped by the skill based on labels and content, not by a fixed mapping. The skill may create appropriate group names for a given project.
 
@@ -348,7 +363,7 @@ _A short human-readable summary of the release._
 
 ```json
 {
-  "$schema": "./.claude/skills/docent/schemas/config.schema.json",
+  "$schema": "https://raw.githubusercontent.com/calumjs/docent/master/skills/docent/schemas/config.schema.json",
   "project": {
     "name": "Docent",
     "owner": "username",
@@ -475,7 +490,7 @@ When signals are ambiguous, the default is `editorial`.
 }
 ```
 
-Schema lives at `.claude/skills/docent/schemas/theme.schema.json`.
+Schema lives at `skills/docent/schemas/theme.schema.json`.
 
 - `accent` and `accentDark` are both required; the template uses them for
   light and dark modes respectively. If only one source color is
@@ -671,30 +686,83 @@ use GitHub Actions for content regeneration instead. The skill ships
 optional fallbacks. They use `anthropics/claude-code-action@v1` and
 require an `ANTHROPIC_API_KEY` repository secret. `init` mode does NOT
 copy them by default; users opt in by copying them manually from
-`.claude/skills/docent/templates/workflows/` into `.github/workflows/`
+`skills/docent/templates/workflows/` into `.github/workflows/`
 and configuring the secret.
 
 ## 7. Install and first-run experience
 
 ### 7.1 Installation
 
-The user installs Docent by copying `.claude/skills/docent/` into their repo. Three supported methods:
+Docent is distributed as a Claude Code plugin through a git-based
+marketplace. Installation is two commands inside any Claude Code session
+that has your target repo as its working directory:
 
-1. **Git submodule** (recommended for updates):
-   ```bash
-   git submodule add https://github.com/USERNAME/docent .claude/skills/docent
-   ```
-2. **Direct copy** (simplest):
-   ```bash
-   curl -L https://github.com/USERNAME/docent/archive/main.tar.gz \
-     | tar xz --strip-components=1 -C .claude/skills/docent \
-       'docent-main/.claude/skills/docent'
-   ```
-3. **Clone-and-copy** (for contributors):
-   ```bash
-   git clone https://github.com/USERNAME/docent
-   cp -r docent/.claude/skills/docent .claude/skills/
-   ```
+```
+/plugin marketplace add calumjs/docent
+/plugin install docent@docent
+```
+
+The first adds `github.com/calumjs/docent` as a marketplace source. The
+second installs the `docent` plugin from that marketplace. Claude Code
+clones the repo into its plugin cache (typically
+`~/.claude/plugins/cache/docent/...`), validates
+`.claude-plugin/plugin.json`, and registers the bundled skill.
+
+After install, the skill's description triggers when the user says
+"set up Docent" (or any of the other intents in SKILL.md's mode table).
+
+#### 7.1.1 Repo layout this expects
+
+For the marketplace to work, the source repo must have:
+
+```
+calumjs/docent/                       # the marketplace = this repo
+├── .claude-plugin/
+│   ├── marketplace.json              # lists plugins in this marketplace
+│   └── plugin.json                   # this plugin's metadata
+├── skills/
+│   └── docent/                       # the skill itself
+│       ├── SKILL.md
+│       ├── modes/
+│       ├── prompts/
+│       ├── schemas/
+│       └── templates/
+└── ...                               # other repo files (SPEC, docs, etc.)
+```
+
+`plugin.json`'s `skills` field points at `./skills/`, so every
+subdirectory there that contains a `SKILL.md` becomes an installable
+skill. Only one skill (`docent`) currently.
+
+#### 7.1.2 Updating
+
+```
+/plugin update docent
+```
+
+Pulls the latest version from the marketplace source. Users on the main
+branch track the tip; tagged releases can be pinned with
+`/plugin install docent@docent@<version>` when version-pinning becomes
+needed.
+
+#### 7.1.3 Path references inside the skill
+
+The skill's own files live inside the plugin cache, NOT in the user's
+repo. Any bash command in a mode file (e.g. copying the site template
+during `init`) must reference them via `${CLAUDE_PLUGIN_ROOT}`:
+
+```bash
+cp -r "${CLAUDE_PLUGIN_ROOT}/skills/docent/templates/site/." docs/
+```
+
+The `${CLAUDE_PLUGIN_ROOT}` variable is expanded at runtime by Claude
+Code; it resolves to the plugin's installation directory.
+
+Files the skill *writes* (like `docent.config.json` or `theme.json`)
+cannot reference `${CLAUDE_PLUGIN_ROOT}` because they live in the user's
+repo and are read outside the Claude Code runtime. These files point at
+GitHub raw URLs for their `$schema` fields instead —
+`https://raw.githubusercontent.com/calumjs/docent/master/skills/docent/schemas/<name>.schema.json`.
 
 ### 7.2 First run
 

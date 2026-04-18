@@ -1,5 +1,5 @@
 {
-  "$schema": "../../.claude/skills/docent/schemas/theme.schema.json",
+  "$schema": "https://raw.githubusercontent.com/calumjs/docent/master/skills/docent/schemas/theme.schema.json",
   "vibe": "editorial",
   "accent": "#b45309",
   "accentDark": "#f59e0b",

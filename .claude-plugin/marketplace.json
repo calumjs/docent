@@ -1,0 +1,15 @@
+{
+  "name": "docent",
+  "owner": {
+    "name": "calumjs",
+    "url": "https://github.com/calumjs"
+  },
+  "plugins": [
+    {
+      "name": "docent",
+      "source": "./",
+      "description": "Turn any GitHub repo into a public-facing, self-maintaining website.",
+      "homepage": "https://github.com/calumjs/docent"
+    }
+  ]
+}
