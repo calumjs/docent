@@ -1,0 +1,60 @@
+---
+title: "The scaffold is in"
+date: "2026-04-18"
+summary: "Docent's first commit — spec, skill, prompts, and site template — lands, and the project dogfoods itself."
+tags: ["inaugural", "scaffold"]
+generatedBy: "docent"
+generatedAt: "2026-04-18T23:00:00Z"
+mode: "init"
+commitRange: "91b005b..91b005b"
+---
+
+Docent exists, as of today, as a single commit: the spec, the Claude skill
+that drives it, the prompt files that shape what it writes, the JSON schemas
+that validate what it produces, and an Astro site template that renders the
+result. The whole thing fits in a few dozen files.
+
+## What's in the scaffold
+
+The project has three visible layers:
+
+- **The spec** — `SPEC.md`, a working document that describes how Docent
+  is meant to behave and why. It is explicit about the design principles
+  (zero hosted infrastructure, PR-gated output, structured content, same-repo
+  versioning) and about what the project is deliberately not trying to be
+  (not an API doc generator, not an issue tracker replacement).
+- **The skill** — `/.claude/skills/docent/`. Five modes (`init`, `update`,
+  `digest`, `release`, `triage`), each defined in its own markdown file.
+  System prompts for overview writing, journal writing, issue summarizing,
+  and theme classification. Schemas for everything it writes.
+- **The site template** — `/.claude/skills/docent/templates/site/`. An
+  Astro project with seven routes, four distinct visual vibes (editorial,
+  technical, clinical, expressive), and a small set of components.
+
+## Scheduling decision
+
+Early drafts of the spec assumed GitHub Actions would run the content
+updates. That changed during the scaffold: Docent now uses **Claude Code
+Routines** for content regeneration and leaves GitHub Actions doing only
+the GitHub Pages deploy. The practical effect for a maintainer: no
+`ANTHROPIC_API_KEY` to configure, no YAML to wire up — just two
+`/schedule` commands once, and the site maintains itself on the
+maintainer's Claude Code subscription.
+
+A GitHub Actions fallback stays in the spec (§6.7) for users who can't
+use Routines, but the primary path is Routines.
+
+## Design inheritance
+
+The spec reserves `theme.json` as a per-repo visual identity the skill
+chooses once at `init`. There are four vibes. For this repo, the
+`editorial` vibe was the obvious pick — Docent's name literally means
+museum guide, and the project is about readable prose. Visual identity
+is frozen at init; scheduled runs can't change it.
+
+## Coming up
+
+The interesting next question is how the generated content holds up in
+practice. This post is the first real test — read it, look at the
+[overview](/), and if the voice feels off, the skill's prompts need
+tuning, not the template.

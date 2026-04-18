@@ -1,0 +1,31 @@
+{
+  "$schema": "./.claude/skills/docent/schemas/config.schema.json",
+  "project": {
+    "name": "Docent",
+    "owner": "calumjs",
+    "repo": "docent",
+    "homepage": "https://calumjs.github.io/docent"
+  },
+  "tone": "neutral",
+  "sections": {
+    "overview": true,
+    "journal": true,
+    "status": true,
+    "changelog": true,
+    "bugReport": true,
+    "featureRequest": true
+  },
+  "journal": {
+    "cadence": "weekly",
+    "announceReleases": true,
+    "minCommitsPerPost": 3
+  },
+  "status": {
+    "groupStrategy": "auto",
+    "excludeLabels": ["wontfix", "duplicate", "invalid"]
+  },
+  "deploy": {
+    "target": "github-pages",
+    "customDomain": null
+  }
+}
