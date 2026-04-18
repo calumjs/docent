@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "docent.config.schema.json",
+  "title": "Docent config",
+  "type": "object",
+  "required": ["project", "tone", "sections", "journal", "status", "deploy"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "project": {
+      "type": "object",
+      "required": ["name", "owner", "repo", "homepage"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "minLength": 1 },
+        "repo": { "type": "string", "minLength": 1 },
+        "homepage": { "type": "string", "format": "uri" }
+      }
+    },
+    "tone": {
+      "type": "string",
+      "enum": ["neutral", "formal", "playful", "technical"]
+    },
+    "sections": {
+      "type": "object",
+      "required": ["overview", "journal", "status", "changelog", "bugReport", "featureRequest"],
+      "properties": {
+        "overview": { "type": "boolean" },
+        "journal": { "type": "boolean" },
+        "status": { "type": "boolean" },
+        "changelog": { "type": "boolean" },
+        "bugReport": { "type": "boolean" },
+        "featureRequest": { "type": "boolean" }
+      }
+    },
+    "journal": {
+      "type": "object",
+      "required": ["cadence", "announceReleases", "minCommitsPerPost"],
+      "properties": {
+        "cadence": {
+          "type": "string",
+          "enum": ["weekly", "biweekly", "monthly", "manual"]
+        },
+        "announceReleases": { "type": "boolean" },
+        "minCommitsPerPost": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "status": {
+      "type": "object",
+      "required": ["groupStrategy", "excludeLabels"],
+      "properties": {
+        "groupStrategy": { "type": "string", "enum": ["auto", "by-label"] },
+        "excludeLabels": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "required": ["target"],
+      "properties": {
+        "target": { "type": "string", "enum": ["github-pages"] },
+        "customDomain": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

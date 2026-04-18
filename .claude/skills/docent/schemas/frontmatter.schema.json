@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "frontmatter.schema.json",
+  "title": "Docent MDX frontmatter conventions",
+  "description": "Common fields for all Docent-generated MDX files. Specific content types add fields on top.",
+  "type": "object",
+  "required": ["generatedBy", "generatedAt", "mode"],
+  "properties": {
+    "generatedBy": { "type": "string", "const": "docent" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "mode": {
+      "type": "string",
+      "enum": ["init", "update", "digest", "release", "triage"]
+    },
+    "title": { "type": "string" },
+    "tagline": { "type": "string", "maxLength": 70 },
+    "summary": { "type": "string" },
+    "date": { "type": "string", "format": "date" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "commitRange": { "type": "string" }
+  }
+}

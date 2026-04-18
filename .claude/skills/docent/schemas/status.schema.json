@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "status.schema.json",
+  "title": "Docent status page data",
+  "type": "object",
+  "required": ["generatedAt", "openIssueCount", "groups"],
+  "properties": {
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "openIssueCount": { "type": "integer", "minimum": 0 },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "description", "issues"],
+        "properties": {
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["number", "title", "summary", "url", "updatedAt"],
+              "properties": {
+                "number": { "type": "integer" },
+                "title": { "type": "string" },
+                "summary": { "type": "string", "maxLength": 200 },
+                "url": { "type": "string", "format": "uri" },
+                "updatedAt": { "type": "string", "format": "date-time" },
+                "labels": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
