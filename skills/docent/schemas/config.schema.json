@@ -49,9 +49,9 @@
         },
         "backfillLimit": {
           "type": "integer",
-          "minimum": 1,
+          "minimum": 2,
           "default": 12,
-          "description": "Maximum number of backfill posts `init` will generate. Caps cost on long-history repos — buckets older than the cap are collapsed into one 'Early history' roundup post."
+          "description": "Maximum number of backfill posts `init` will generate. Caps cost on long-history repos — buckets older than the cap are collapsed into one 'Early history' roundup post. Minimum is 2 (not 1) because the collapse algorithm keeps `backfillLimit - 1` recent buckets; with a limit of 1, zero recent buckets are kept and the rollup's 'date one second before the oldest kept bucket' rule has no reference point. Users who want only one post should set `backfill: false` instead."
         }
       }
     },

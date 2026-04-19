@@ -30,16 +30,33 @@ gh repo view --json name,description,licenseInfo,primaryLanguage
 
 ### Step 2 — Ask the user for choices
 
-Ask these in ONE message, not sequentially. Provide defaults so the user can
-say "defaults are fine":
+Ask these in ONE message, not sequentially. Provide defaults so the user
+can say "defaults are fine":
 
 1. **Tone** — neutral (default), formal, playful, or technical?
 2. **Journal cadence** — weekly (default), biweekly, monthly, or manual only?
-3. **Custom domain?** — default none; the site will deploy to
+3. **Backfill journal from commit history?** — one of:
+   - **yes, up to 12 posts** (default) — partitions git history into
+     cadence-aligned buckets and writes one dated post per bucket, up
+     to a cap of 12. Oldest buckets collapse into an "Early history"
+     roundup so cost stays bounded on long-history repos.
+   - **yes, custom cap** — user supplies an integer ≥ 2. Minimum of
+     2 because the collapse algorithm needs at least one kept bucket
+     plus a rollup slot.
+   - **no, single welcome post** — `journal.backfill: false` in the
+     generated config. Docent writes one inaugural post spanning the
+     whole history.
+4. **Custom domain?** — default none; the site will deploy to
    `{owner}.github.io/{repo}`.
 
 Do NOT ask about section toggles at init; enable all sections by default.
 Users can disable sections later by editing `docent.config.json`.
+
+Record the user's backfill choice so Step 4's generated
+`docent.config.json` reflects it:
+- "yes, up to 12": `journal.backfill = true`, `journal.backfillLimit = 12`
+- "yes, custom N": `journal.backfill = true`, `journal.backfillLimit = N`
+- "no": `journal.backfill = false`, `journal.backfillLimit = 12` (default retained but unused)
 
 ### Step 3 — Create a working branch
 
@@ -81,8 +98,8 @@ Default contents:
     "cadence": "{{chosen cadence}}",
     "announceReleases": true,
     "minCommitsPerPost": 3,
-    "backfill": true,
-    "backfillLimit": 12
+    "backfill": {{backfill choice true/false from Step 2}},
+    "backfillLimit": {{backfill cap from Step 2, default 12, minimum 2}}
   },
   "status": {
     "groupStrategy": "auto",
@@ -168,8 +185,25 @@ Create `docs/content/` and fill it:
 
 **`docs/content/journal/*.mdx` — backfill posts**
 
-Journal generation branches on `journal.backfill` in config. Default
-is `true` (partition history); `false` writes a single inaugural.
+Journal generation branches on `journal.backfill` in config.
+
+**Runtime fallback rules (important).** JSON Schema `default` fields
+are annotations — most validators do NOT substitute them at parse
+time. So `init` and `update` MUST apply these defaults explicitly
+when reading config:
+
+- If `journal.backfill` is missing → treat as `true`.
+- If `journal.backfillLimit` is missing → treat as `12`.
+- If `journal.backfillLimit` is present and less than 2 → reject
+  the config with a specific error pointing the user at the schema
+  constraint. Do NOT silently clamp; that hides the misconfiguration.
+
+The `backfillLimit: 1` case is rejected specifically because the
+collapse algorithm (step 4 below) keeps `backfillLimit - 1` recent
+buckets and dates the rollup relative to the oldest kept one — with
+zero kept buckets, the rollup has no reference point. Users who want
+a single post should set `backfill: false` (which writes one welcome
+post) rather than `backfillLimit: 1`.
 
 **If `journal.backfill === true`** (default):
 
