@@ -158,7 +158,7 @@ the repo's default branch (detected in Step 1) is something else (e.g.
 `templates/workflows/`.
 
 Do NOT copy `docent-update.yml` or `docent-digest.yml` — those are
-optional CI fallbacks (§6.7) for users who can't or won't use Routines.
+optional CI fallbacks (§6.6) for users who can't or won't use Routines.
 Users opt in by copying them manually later.
 
 ### Step 7 — Generate initial content
@@ -401,18 +401,21 @@ This PR scaffolds a Docent-maintained site at `/docs`.
      gh api -X POST repos/{{owner}}/{{repo}}/pages -f build_type=workflow
      ```
 2. **Merge this PR.** The deploy workflow runs automatically.
-3. **Set up the Routines** that keep content fresh. In any Claude Code
-   session, run these two commands. Each spawns a remote environment
-   that starts with *nothing installed* — the prompts must bootstrap
-   the Docent plugin before dispatching to the mode:
+3. **Set up the Routine** that keeps content fresh. In any Claude Code
+   session, run one command. The routine spawns a remote environment
+   that starts with *nothing installed* — the prompt must bootstrap
+   the Docent plugin before dispatching to update mode:
 
    ```
-   /schedule Docent update daily at 10:17 — If the Docent skill is not available in this environment, run `/plugin marketplace add calumjs/docent` and `/plugin install docent@docent` first. Then follow skills/docent/modes/update.md against the current repo.
+   /schedule Docent update daily at 08:00 — If the Docent skill is not available in this environment, run `/plugin marketplace add calumjs/docent` and `/plugin install docent@docent` first. Then follow skills/docent/modes/update.md against the current repo.
    ```
 
-   ```
-   /schedule Docent digest weekly on Mondays at 9:17 — If the Docent skill is not available in this environment, run `/plugin marketplace add calumjs/docent` and `/plugin install docent@docent` first. Then follow skills/docent/modes/digest.md against the current repo.
-   ```
+   One routine, adaptive output: update mode decides for itself whether
+   to regenerate content, write a journal post, both, or nothing,
+   based on what happened since the last run (`modes/update.md` Step 6).
+   The digest mode is still available for manual invocation ("Docent,
+   write a post about the auth refactor") but has no scheduled
+   presence.
 
    The bootstrap clause is there because Claude Code Routines run in a
    clean remote CCR environment that does NOT inherit plugins from the
@@ -435,10 +438,10 @@ This PR scaffolds a Docent-maintained site at `/docs`.
 
    **DST caveat.** Claude Code Routines take UTC cron only; they do
    not currently support IANA-timezone-aware scheduling. A routine
-   scheduled for "10:17 Sydney" becomes a fixed UTC cron that drifts
+   scheduled for "08:00 Sydney" becomes a fixed UTC cron that drifts
    by an hour when Australia enters or leaves AEDT. For most content
    workflows this doesn't matter (who cares if the daily update runs
-   at 09:17 vs 10:17?), but users who need wall-clock-stable timing
+   at 008:00 vs 08:00?), but users who need wall-clock-stable timing
    should plan to re-adjust the cron twice yearly at DST transitions,
    or pick a local time far from midnight where an hour's drift is
    inconsequential.
@@ -458,42 +461,40 @@ EOF
 ### Step 10 — Report back to the user
 
 Report the PR URL and echo the three-step checklist from the PR body.
-Make the two routine-creation commands the most prominent part of the
-reply — they're the step the user most often forgets. Call out that
-Routines run on their subscription plan, not via a separate API key.
+Make the routine-creation command the most prominent part of the
+reply — it's the step users most often forget. Call out that Routines
+run on their subscription plan, not via a separate API key.
 
-**Offer to create the routines directly.** At the end of the report,
-ask whether the user wants you to set up the two routines now. If they
-agree, invoke the `schedule` skill (via the Skill tool) with the two
-routine definitions below. This saves the user from pasting the long
-bootstrap prompts manually.
+**Offer to create the routine directly.** At the end of the report,
+ask whether the user wants you to set up the update routine now. If
+they agree, invoke the `schedule` skill (via the Skill tool) with the
+routine definition below. This saves the user from pasting the long
+bootstrap prompt manually.
 
-The two routine definitions to pass:
+The routine definition to pass:
 
-1. Name: `Docent update`. Cron: daily at 10:17 local (convert to UTC
-   for the cron expression based on the user's timezone). Prompt:
-   ```
-   If the Docent skill is not available in this environment, run:
-     /plugin marketplace add calumjs/docent
-     /plugin install docent@docent
-   Then follow skills/docent/modes/update.md against this repo. Open
-   a PR against the default branch if anything changed.
-   ```
+- Name: `Docent update`. Cron: daily at 08:00 local (convert to UTC
+  for the cron expression based on the user's timezone). Prompt:
+  ```
+  If the Docent skill is not available in this environment, run:
+    /plugin marketplace add calumjs/docent
+    /plugin install docent@docent
+  Then follow skills/docent/modes/update.md against this repo. Update
+  mode will decide for itself whether the day's activity is worth a
+  journal post; if it is, write one in the same PR. Open a PR against
+  the default branch if anything changed, otherwise exit silently.
+  ```
 
-2. Name: `Docent digest`. Cron: Mondays at 9:17 local (convert to UTC).
-   Prompt:
-   ```
-   If the Docent skill is not available in this environment, run:
-     /plugin marketplace add calumjs/docent
-     /plugin install docent@docent
-   Then follow skills/docent/modes/digest.md against this repo. Open
-   a PR against the default branch with the new journal post.
-   ```
-
-Both routines target the user's GitHub repo (owner/repo already
+The routine targets the user's GitHub repo (owner/repo already
 collected in Step 1). If the user declines the offer or the schedule
-skill isn't available, fall back to printing the paste-these commands
+skill isn't available, fall back to printing the paste-this command
 from Step 9's PR body.
+
+**No separate digest routine.** Earlier versions of this skill shipped
+two Routines (daily update + weekly digest). That's consolidated now:
+update mode decides journal-worthiness adaptively. Manual digest
+invocation ("Docent, write a post about X") still works via
+`modes/digest.md` for topic-scoped posts.
 
 End the reply with a short invitation to file feedback:
 

@@ -1,12 +1,23 @@
 # Mode: `digest`
 
-Write a journal post summarizing recent repository activity. Triggered by
-scheduled runs (if cadence matches) or by the user asking for a digest.
+Write a journal post summarizing recent repository activity.
+
+**Manual invocation only.** The scheduled daily Routine uses `update`
+mode, which decides for itself whether to write a post based on window
+activity (see `update.md` Step 6). `digest` is for when a user
+explicitly asks ("Docent, write a post about the auth refactor,"
+"Docent, digest the last month") — scoped to a specific topic or time
+window the user specifies.
+
+A digest invocation bypasses the update-mode's "is this journal-worthy"
+check. The user asked for a post, so write one — even if the activity
+bar wouldn't clear on its own.
 
 ## Preconditions
 
 - `docent.config.json` exists and `sections.journal` is `true`.
 - `/docs/content/journal/` exists.
+- User explicitly invoked this mode (not scheduled).
 
 ## Procedure
 

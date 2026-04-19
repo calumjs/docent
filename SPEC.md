@@ -552,7 +552,8 @@ different mechanisms:
 | Build and deploy the Astro site to GitHub Pages | GitHub Actions | Pure static build, no Claude in the loop; native to Pages |
 
 A Docent install ends up with one GitHub Actions file (`docent-deploy.yml`)
-and two Routines (`docent-update` and `docent-digest`).
+and one Routine (`docent-update`). The update routine decides for itself
+whether a given day's activity warrants a journal post.
 
 ### 6.1 Why Routines, not GitHub Actions, for content
 
@@ -569,8 +570,8 @@ Limitations the design has to live with:
 - **Cron-only, no webhooks.** Routines can't fire on GitHub issue events
   directly. The `update` routine polls daily; the tradeoff is a
   status page that lags by up to a day instead of updating within minutes.
-- **Daily run-count cap** on Claude Code plans. Two routines per repo is
-  well under typical caps even for small plans.
+- **Daily run-count cap** on Claude Code plans. One routine per repo
+  is well under typical caps even on small plans.
 - **Creation is UI/CLI, not programmatic.** The skill can't call a tool to
   create routines. `init` mode outputs the exact `/schedule` commands for
   the user to run manually.
@@ -580,46 +581,45 @@ Limitations the design has to live with:
 At the end of `init` mode, the skill prints:
 
 ```
-Docent is installed. To finish setup, run these two commands in Claude Code:
+Docent is installed. To finish setup, run one command in Claude Code:
 
-  /schedule update Docent daily at 10:17 — prompt: "Docent: run update mode."
-  /schedule digest Docent weekly on Mondays at 9:17 — prompt: "Docent: run digest mode."
+  /schedule Docent update daily at 08:00 — prompt: "Docent: run update mode."
 
-Or configure them in the Claude Code UI at claude.ai/code/routines.
+Or configure it in the Claude Code UI at claude.ai/code/routines.
 ```
 
 Times use off-minute values (`:17`) to avoid the thundering-herd cost of
 everyone's routines firing at `:00`. See `prompts/tone-presets.md` for the
 analogous principle applied to content.
 
-### 6.3 Update routine
+### 6.3 The update routine (one mode, adaptive output)
 
-- **Cadence**: daily, ~10:17 local.
+- **Cadence**: daily, ~08:00 local.
 - **Prompt**: `Docent: run update mode.`
-- **What it does**: follows `modes/update.md` — regenerates `status.json`
-  from current issues, refreshes `overview.mdx` if `README.md` changed or
-  the file is >90 days old, and runs `release` mode for any tag newer than
-  the most recent changelog entry. Opens a PR if anything changed,
-  otherwise exits silently (the idempotency invariant).
+- **What it does**: follows `modes/update.md`. On each run:
+  1. Checks `status.json` / `overview.mdx` / `changelog.mdx` anchors
+     and regenerates whichever drifted (respecting hand-edit
+     detection).
+  2. Decides whether the period's activity (merged PRs, closed issues,
+     commits since the last journal post) warrants a journal post.
+     The decision is LLM-driven — rough guidance in `update.md` Step 6
+     but ultimately agent judgment. "Honest silence beats padded prose."
+  3. If anything was regenerated OR a journal post was written, opens
+     one combined PR. If nothing, exits silently.
 
-Daily is cheap because most days produce no PR. The routine fetches
-issues, hashes the result against the prior `status.json`, and bails early
-if identical.
+The daily cadence combined with adaptive output replaces the earlier
+two-routine design (daily update + weekly Monday digest). Rationale:
 
-### 6.4 Digest routine
+- Weekly cadence created a "silence until Monday" gap on active repos.
+- A fixed schedule produced posts on quiet weeks and missed stories on
+  active days that weren't Monday.
+- Users had to set up and remember two routines.
 
-- **Cadence**: weekly, Mondays ~09:17 local.
-- **Prompt**: `Docent: run digest mode.`
-- **What it does**: follows `modes/digest.md` — finds the time window
-  since the last journal post, gathers merged PRs and closed issues,
-  identifies themes, writes one post, opens a PR.
+One daily routine with discretion solves all three. Users who want
+topic-scoped posts on demand still have `digest` mode (manually
+invoked — no schedule).
 
-The weekly cron is fixed; the **effective cadence** is controlled by
-`journal.cadence` in `docent.config.json`. If set to `biweekly` or
-`monthly`, `digest` mode's time-window check causes off-week runs to exit
-silently. Users change cadence by editing config, not the routine.
-
-### 6.5 `docent-deploy.yml` (the one GitHub Actions file)
+### 6.4 `docent-deploy.yml` (the one GitHub Actions file)
 
 Deploys the site to GitHub Pages on pushes to main that touch `/docs` or
 the config. This is a pure static build — Claude is not involved.
@@ -663,7 +663,7 @@ Uses the modern official-action flow: `configure-pages` +
 `upload-pages-artifact` + `deploy-pages`. Requires **Settings → Pages →
 Source: GitHub Actions** to be enabled (one-time manual step).
 
-### 6.6 Local dev mode
+### 6.5 Local dev mode
 
 While iterating on the skill itself, the Routine feedback loop is too slow
 — you want to fire the skill against a repo and see results in seconds,
@@ -677,7 +677,7 @@ not wait a day. Use either:
 Neither is a substitute for Routines in production — both require an
 active Claude Code session and both auto-expire.
 
-### 6.7 Appendix: GitHub Actions fallback for content
+### 6.6 Appendix: GitHub Actions fallback for content
 
 Users who prefer CI over Routines (e.g. organizations with strict
 policies about hosted AI runners, or users not on a Claude Code plan) can
@@ -780,8 +780,8 @@ The PR the skill opens includes a checklist in its description:
 > 2. **Merge this PR.** The deploy workflow runs automatically.
 > 3. **Set up the Routines** that keep content fresh. In Claude Code, run:
 >    ```
->    /schedule update Docent daily at 10:17 — prompt: "Docent: run update mode."
->    /schedule digest Docent weekly on Mondays at 9:17 — prompt: "Docent: run digest mode."
+>    /schedule update Docent daily at 08:00 — prompt: "Docent: run update mode."
+>    /schedule digest Docent weekly on Mondays at 08:00 — prompt: "Docent: run digest mode."
 >    ```
 >    Or configure them at claude.ai/code/routines.
 

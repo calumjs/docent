@@ -21,7 +21,7 @@ live at [calumjs.github.io/docent](https://calumjs.github.io/docent/).
 - [x] `skills/docent/templates/workflows/docent-deploy.yml` —
       Pages deploy (primary path)
 - [x] `skills/docent/templates/workflows/docent-update.yml` and
-      `docent-digest.yml` — optional CI fallbacks (SPEC §6.7)
+      `docent-digest.yml` — optional CI fallbacks (SPEC §6.6)
 - [x] SPEC §6 rewritten around Claude Code Routines as the primary
       scheduler; GitHub Actions reduced to the Pages deploy
 - [x] **Plugin-marketplace packaging** (SPEC §7.1): `.claude-plugin/`
