@@ -1,15 +1,24 @@
 {
-  "generatedAt": "2026-04-19T04:27:17Z",
-  "openIssueCount": 0,
+  "generatedAt": "2026-04-19T08:00:00Z",
+  "openIssueCount": 1,
   "sourceSnapshot": {
-    "issueSetHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "openIssueCount": 0
+    "issueSetHash": "3a623d3207763770fb45e49b071e757db61998df3bb39502b26f62b155d39bff",
+    "openIssueCount": 1
   },
   "groups": [
     {
-      "label": "All clear",
-      "description": "No open issues right now. Issues opened on GitHub will appear here on the next update.",
-      "issues": []
+      "label": "Feature requests",
+      "description": "Proposed additions and integrations currently open for discussion.",
+      "issues": [
+        {
+          "number": 15,
+          "title": "Integrate with GSD (Get Shit Done) for spec-driven work surfacing",
+          "summary": "Proposal to surface GSD phase artifacts (discuss/plan/execute/verify) on the status and journal pages for repos that use GSD for spec-driven development.",
+          "url": "https://github.com/calumjs/docent/issues/15",
+          "updatedAt": "2026-04-19T06:50:58Z",
+          "labels": []
+        }
+      ]
     }
   ]
 }
