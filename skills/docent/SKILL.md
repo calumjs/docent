@@ -3,9 +3,11 @@ name: docent
 description: |
   Generates and maintains a public-facing static website for a GitHub repo.
   Use this skill when the user wants to set up Docent, update the Docent site,
-  write a journal post or digest, generate release notes, or triage new issues.
-  Also triggers on mentions of "docent site", "docs site update", or operations
-  on /docs/content/ in a repo that has docent.config.json.
+  write a journal post or digest, generate release notes, triage new issues,
+  or file feedback about Docent itself (the "suggest" mode).
+  Also triggers on mentions of "docent site", "docs site update", operations
+  on /docs/content/ in a repo that has docent.config.json, or phrases like
+  "I want to suggest something about Docent" / "report a Docent bug".
 ---
 
 # Docent
@@ -27,6 +29,7 @@ for and the current state of the repo.
 | "write a journal post", "write a digest", "summarize recent work" | `digest` | `modes/digest.md` |
 | "release notes for {tag}", "generate release notes", new tag pushed | `release` | `modes/release.md` |
 | "triage issues", "look at new issues" | `triage` | `modes/triage.md` |
+| "suggest", "file feedback", "I noticed something about Docent" | `suggest` | `modes/suggest.md` |
 
 When invoked, follow this procedure:
 
