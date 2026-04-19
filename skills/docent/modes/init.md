@@ -262,6 +262,26 @@ This PR scaffolds a Docent-maintained site at `/docs`.
    including the same bootstrap text in each prompt. Routines use your
    Claude Code subscription — no `ANTHROPIC_API_KEY` required.
 
+   **Trust / pinning note.** `docent@docent` tracks the marketplace's
+   default ref (the Docent repo's `master`). Every routine run pulls
+   the latest version, which is the same trust posture as any
+   auto-updating tool. Users who want stricter reproducibility can pin
+   to a specific commit by replacing the install line with
+   `/plugin install docent@docent@<commit-sha>` (e.g. a tagged
+   release). Pinning trades update freshness for supply-chain
+   tightness — if the Docent repo is ever compromised, pinned
+   installs keep running the known-good version.
+
+   **DST caveat.** Claude Code Routines take UTC cron only; they do
+   not currently support IANA-timezone-aware scheduling. A routine
+   scheduled for "10:17 Sydney" becomes a fixed UTC cron that drifts
+   by an hour when Australia enters or leaves AEDT. For most content
+   workflows this doesn't matter (who cares if the daily update runs
+   at 09:17 vs 10:17?), but users who need wall-clock-stable timing
+   should plan to re-adjust the cron twice yearly at DST transitions,
+   or pick a local time far from midnight where an hour's drift is
+   inconsequential.
+
 The site will be live at {{homepage}} shortly after the first deploy.
 EOF
 )"
