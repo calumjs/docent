@@ -1,9 +1,68 @@
 {
-  "generatedAt": "2026-04-18T23:00:00Z",
-  "openIssueCount": 0,
+  "generatedAt": "2026-04-19T00:00:00Z",
+  "openIssueCount": 5,
   "sourceSnapshot": {
-    "issueSetHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "openIssueCount": 0
+    "issueSetHash": "020e7ad02244a3e1dbd177c74e7a32c642a15ff4bb9cb7b0c3105efd56bce719",
+    "openIssueCount": 5
   },
-  "groups": []
+  "groups": [
+    {
+      "label": "Bugs",
+      "description": "Known issues affecting current behavior.",
+      "issues": [
+        {
+          "number": 3,
+          "title": "init: Routines prompts are not self-contained for remote CCR",
+          "summary": "Scheduled update and digest runs fail in the remote CCR environment because the emitted prompts assume the plugin is already installed.",
+          "url": "https://github.com/calumjs/docent/issues/3",
+          "updatedAt": "2026-04-19T00:54:34Z",
+          "labels": ["bug"]
+        }
+      ]
+    },
+    {
+      "label": "Enhancements",
+      "description": "Proposed additions and larger behavior changes.",
+      "issues": [
+        {
+          "number": 2,
+          "title": "init: backfill journal with dated posts from commit history",
+          "summary": "Partition a new install's git history into cadence buckets and produce one dated post per bucket so the journal arrives lived-in rather than empty.",
+          "url": "https://github.com/calumjs/docent/issues/2",
+          "updatedAt": "2026-04-19T00:55:24Z",
+          "labels": ["enhancement"]
+        },
+        {
+          "number": 4,
+          "title": "Add sourceCommit/sourceFiles frontmatter so update can detect stale content",
+          "summary": "Anchor generated files to the repo state that produced them so the update mode can tell what actually needs regenerating.",
+          "url": "https://github.com/calumjs/docent/issues/4",
+          "updatedAt": "2026-04-19T00:54:51Z",
+          "labels": ["enhancement"]
+        },
+        {
+          "number": 6,
+          "title": "Add a 'suggest' skill that files feedback as a GitHub issue",
+          "summary": "Structured intake that lets users file Docent feedback without leaving Claude Code — config and version attached, secrets redacted.",
+          "url": "https://github.com/calumjs/docent/issues/6",
+          "updatedAt": "2026-04-19T00:56:00Z",
+          "labels": ["enhancement"]
+        }
+      ]
+    },
+    {
+      "label": "Documentation",
+      "description": "Prompt wording, procedure steps, and schema notes that need tightening.",
+      "issues": [
+        {
+          "number": 5,
+          "title": "Prompt and procedure refinements found during init dogfooding",
+          "summary": "Four sub-items: inaugural-voice guidance, tone examples per content type, empty-state contract, harness-independent shell command in init Step 5.",
+          "url": "https://github.com/calumjs/docent/issues/5",
+          "updatedAt": "2026-04-19T00:55:11Z",
+          "labels": ["documentation"]
+        }
+      ]
+    }
+  ]
 }
