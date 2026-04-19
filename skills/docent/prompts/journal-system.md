@@ -37,7 +37,11 @@ A good journal post:
 ## Rules for writing
 
 - Past tense. This is a record of what happened.
-- Link to PRs and issues inline: `([#142](url))`.
+- Link to PRs and issues inline: `([#142](url))`. External URLs
+  (github.com, docs.…) are fine as normal markdown because they're
+  absolute. If you need to link to another page *on this site*, use
+  inline HTML with the base path: `<a href={`${import.meta.env.BASE_URL}status/`}>the status page</a>` — markdown `[text](/status/)` misses
+  the base under GitHub Pages.
 - Short paragraphs. Two to four sentences each.
 - No cliffhangers or hype. "Next week: something huge!" is forbidden.
 - If the week was quiet, say so and keep the post short. A 150-word
