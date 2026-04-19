@@ -26,45 +26,84 @@ Compare the recorded anchor to the current repo state; only regenerate
 files whose anchors are stale.
 
 Before regenerating any file, check whether the file has been edited by
-hand since Docent last wrote it:
+hand since Docent last wrote it. **Two signals must BOTH agree that the
+file is machine-owned** — a single spoofable signal is not enough:
+
+**Signal 1: working tree clean + no non-Docent commits touching the file.**
 
 ```bash
-git diff --quiet HEAD -- docs/content/{file}    # 1 if dirty
-git log -1 --pretty=format:"%s" -- docs/content/{file}   # last commit subject
+git diff --quiet HEAD -- docs/content/{file}             # 1 = dirty
+git log --pretty=format:"%s" -- docs/content/{file} \
+  | grep -v "^Docent:" | head -1                         # any human commit
 ```
 
-Treat the file as **human-owned** (skip regeneration, even if the
-anchor is stale) if either:
-- `git diff --quiet` returns non-zero (uncommitted changes present), or
-- the last commit touching the file has a subject that does NOT start
-  with `Docent:`.
+Skip regeneration if either the working tree is dirty or ANY commit in
+the file's history has a subject that does NOT start with `Docent:`. We
+check the full history, not just the last commit — a single human edit
+anywhere in the past permanently moves the file to "co-owned."
 
-This is the chosen answer to the hand-edit edge case (issue #4). The
-alternative — comparing the file's own blob sha to a recorded hash —
-requires a hash-of-self field that's awkward to maintain. Git's
-authorship record is already the source of truth.
+**Signal 2: body hash matches what Docent wrote.**
+
+Compute the SHA-256 of the file body (everything after the closing `---`
+of the frontmatter; or the whole file for JSON). Compare to the
+recorded `bodyHash` (MDX) or `sourceSnapshot.issueSetHash`-validated
+content (status.json).
+
+For MDX files:
+```bash
+awk 'BEGIN{n=0} /^---$/{n++; next} n>=2 {print}' docs/content/overview.mdx | \
+  sha256sum | awk '{print $1}'
+```
+
+If the current body hash differs from the recorded `bodyHash`, the file
+was edited — skip regardless of what the commit log says. This catches
+the case a human accidentally (or deliberately) used a `Docent:` commit
+subject: the hash won't match.
+
+**Both signals must pass** for machine-ownership. Either failing → skip.
+Defense in depth: commits can be subject-spoofed, but you can't spoof
+the hash unless you carefully re-hash and rewrite the frontmatter,
+which is well past "accidental."
+
+### Step 2b — Regeneration writes fresh anchors
+
+When Docent regenerates a file, it must:
+1. Write the new body.
+2. Compute the body's SHA-256.
+3. Write the full file with the hash in frontmatter (`bodyHash` for MDX,
+   inline in JSON's `sourceSnapshot`). This means writing twice or
+   buffering — a minor implementation cost for a load-bearing check.
 
 ### Step 3 — Check `status.json` freshness
 
-Read `docs/content/status.json`'s `sourceSnapshot`. Fetch the current
-state from GitHub:
+Read `docs/content/status.json`'s `sourceSnapshot.issueSetHash`. Fetch
+the current state from GitHub:
 
 ```bash
 gh issue list --state open --limit 200 \
-  --json number,title,body,labels,updatedAt,url,assignees
+  --json number,title,body,labels,updatedAt,url,assignees,state
 ```
 
-Filter out excluded labels. Compute `currentNewestUpdatedAt` (max
-`updatedAt` across filtered issues) and `currentOpenIssueCount`.
+Filter out excluded labels. Then compute the current issue-set hash:
 
-Regenerate `status.json` if EITHER:
-- `currentOpenIssueCount` differs from `sourceSnapshot.openIssueCount`, OR
-- `currentNewestUpdatedAt` is strictly later than `sourceSnapshot.newestIssueUpdatedAt`.
+1. For each remaining issue, produce a tuple
+   `{number, updatedAt, state, labels[sorted]}`.
+2. Sort the tuple list by `number`.
+3. Serialize as canonical JSON (UTF-8, sorted keys, no whitespace).
+4. SHA-256 of the serialization.
 
-Otherwise skip — the page is current.
+Compare to `sourceSnapshot.issueSetHash`. **Regenerate if and only if
+the hashes differ.** Do NOT gate on `openIssueCount` and
+`newestIssueUpdatedAt` alone — those can collide across different issue
+sets (one issue closing while another opens with no newer timestamp
+leaves both unchanged but the groupings stale).
+
+The hash is the authoritative signal. The `openIssueCount` top-level
+field is retained for the page template and humans, not for freshness
+detection.
 
 If regenerating, follow `init.md` Step 7's `status.json` procedure and
-write a fresh `sourceSnapshot`.
+write a fresh `sourceSnapshot` with the new hash.
 
 ### Step 4 — Check `overview.mdx` freshness
 
@@ -84,20 +123,31 @@ write fresh `sourceFiles` entries.
 
 ### Step 5 — Check `changelog.mdx` freshness
 
-Run:
+Full tag-set reconciliation — not just the newest tag. Older tags can
+be added mid-history (backported releases, annotated tag fixes), and
+we must catch them all or the changelog silently drifts incomplete.
 
 ```bash
-git tag --sort=-creatordate | head -1       # most recent tag
-git rev-parse --short HEAD                  # current HEAD
+git tag --sort=-creatordate                 # all tags, newest first
 ```
 
-Read `docs/content/changelog.mdx`'s frontmatter `sourceCommit`.
+Extract the set of tags already represented in `changelog.mdx` (each
+entry opens with `## <tag> — <date>` per SPEC §4.4). Let:
 
-Regenerate (via `release` mode's procedure for the newest tag, combined
-into this PR) if either:
-- A tag exists that has no entry in `changelog.mdx`, OR
-- `sourceCommit` differs from current HEAD AND the newest tag is newer
-  than the most recent entry's date.
+- `allTags` = set from `git tag`
+- `changelogTags` = set parsed from the file
+
+**Regenerate if `allTags \ changelogTags` is non-empty** — any missing
+tag triggers a run.
+
+For each missing tag, run the `release` mode procedure (not opening a
+separate PR; fold the entries into this update PR, inserted in correct
+chronological position based on tag date).
+
+Update the frontmatter `sourceCommit` to the current short HEAD after
+writing. This records the commit Docent reconciled against; a future
+run comparing `sourceCommit` to HEAD is a cheap first-pass check
+before doing the expensive tag-set diff.
 
 ### Step 6 — If nothing changed, exit
 

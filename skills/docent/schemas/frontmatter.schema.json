@@ -49,6 +49,12 @@
       "type": "object",
       "description": "State snapshot for content derived from external sources (e.g. GitHub Issues API) rather than the repo itself. Update mode compares a current snapshot to this recorded one and regenerates only if they differ. Fields are content-type specific.",
       "additionalProperties": true
+    },
+
+    "bodyHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the file body (everything after the closing `---` of the frontmatter), recorded at generation time. Update mode uses this as the content-based hand-edit detector: if the current body hash differs from this value, the file was edited by a human and must not be regenerated — regardless of the commit-subject heuristic. Machine-owned files have matching hashes; human-edited files don't."
     }
   }
 }
