@@ -104,8 +104,13 @@ Then generate `docs/package-lock.json` so the deploy workflow's
 `cache: npm` + `npm ci` don't fail on first push:
 
 ```bash
-cd docs && npm install --ignore-scripts && cd ..
+npm install --prefix docs --ignore-scripts
 ```
+
+Use `--prefix docs` rather than `cd docs && npm install && cd ..` —
+harnesses vary on whether cwd persists between bash calls, and any
+chain of `cd` instructions risks leaving the shell in `docs/` for the
+next step. `--prefix` is a single, cwd-independent invocation.
 
 `--ignore-scripts` avoids running postinstall hooks from template deps;
 we only need the lock file, not a functional install. The resulting
@@ -168,7 +173,14 @@ Create `docs/content/` and fill it:
 - Write a single "project so far" post summarizing the repo's history.
 - Use commit history, tags, and README to identify the project's origin and
   major milestones.
-- Tone should be welcoming — this is likely the first post a visitor reads.
+- Follow the **Inaugural and backfill posts** section of
+  `prompts/journal-system.md`, NOT the digest guidance. The inaugural
+  post spans the whole repo history, is retrospective rather than
+  contemporaneous, and has `mode: "init"` in its frontmatter so
+  scheduled runs treat it as immutable.
+- Tone should be welcoming — this is likely the first post a visitor
+  reads — but honest: frame it as reading the commit log, not as
+  reporting on work you were present for.
 
 ### Step 7.5 — Analyze the repo's design and write `theme.json`
 
