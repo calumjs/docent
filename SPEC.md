@@ -771,7 +771,12 @@ After installation, the user opens Claude Code in the repo and says "set up Doce
 The PR the skill opens includes a checklist in its description:
 
 > **Next steps** (do these after merging):
-> 1. **Settings → Pages → Source → GitHub Actions** — enables the deploy workflow.
+> 1. **Enable GitHub Pages with Actions as the source.** Either via
+>    **Settings → Pages → Source → GitHub Actions** in the web UI, or in
+>    one shell command:
+>    ```bash
+>    gh api -X POST repos/{owner}/{repo}/pages -f build_type=workflow
+>    ```
 > 2. **Merge this PR.** The deploy workflow runs automatically.
 > 3. **Set up the Routines** that keep content fresh. In Claude Code, run:
 >    ```

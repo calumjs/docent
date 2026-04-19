@@ -234,7 +234,11 @@ This PR scaffolds a Docent-maintained site at `/docs`.
 
 ## Next steps
 
-1. **Settings → Pages → Source → GitHub Actions** (one-time).
+1. **Enable GitHub Pages with Actions as the source** (one-time). Either:
+   - **Settings → Pages → Source → GitHub Actions** in the web UI, or
+   - ```bash
+     gh api -X POST repos/{{owner}}/{{repo}}/pages -f build_type=workflow
+     ```
 2. **Merge this PR.** The deploy workflow runs automatically.
 3. **Set up the Routines** that keep content fresh. In any Claude Code
    session, run:
