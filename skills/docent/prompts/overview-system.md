@@ -46,6 +46,20 @@ Aim for 300–800 words total. Roughly:
   it's fast, don't say it's fast.
 - **Imports OK.** The MDX file may use Astro components. Don't invent
   components — only use ones that exist in `docs/src/components/`.
+- **Internal links must respect the site's base path.** The site
+  deploys to `{owner}.github.io/{repo}` by default, so internal routes
+  are served from `/repo/…`, not `/`. Markdown links like
+  `[report a bug](/report-bug/)` render verbatim — they miss the base
+  and break on GitHub Pages. Use inline HTML with the base
+  interpolated instead:
+
+  ```mdx
+  <a href={`${import.meta.env.BASE_URL}report-bug/`}>report a bug</a>
+  ```
+
+  External links (GitHub issues, PRs, anything `https://…`) are
+  absolute and fine as normal markdown. This only matters for links
+  *to other pages on this same site*.
 
 ## Tone adjustments
 
