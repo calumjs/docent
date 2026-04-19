@@ -29,27 +29,51 @@ Before regenerating any file, check whether the file has been edited by
 hand since Docent last wrote it. **Two signals must BOTH agree that the
 file is machine-owned** — a single spoofable signal is not enough:
 
-**Signal 1: working tree clean + no non-Docent commits touching the file.**
+**Signal 1: working tree clean + no non-Docent commits _since the last
+Docent-authored commit touching the file_.**
 
 ```bash
 git diff --quiet HEAD -- docs/content/{file}             # 1 = dirty
-git log --pretty=format:"%s" -- docs/content/{file} \
-  | grep -v "^Docent:" | head -1                         # any human commit
+
+# Find the most recent Docent-authored commit touching this file.
+# That commit is the reference: it wrote the current anchors, so any
+# commits AFTER it must also be Docent's or the file is co-owned.
+LAST_DOCENT=$(git log --pretty=format:"%H %s" -- docs/content/{file} \
+  | grep -E "^[a-f0-9]+ Docent:" | head -1 | cut -d' ' -f1)
+
+# Non-Docent commits since then (empty = machine-owned)
+git log --pretty=format:"%s" "${LAST_DOCENT}..HEAD" -- docs/content/{file} \
+  | grep -v "^Docent:" | head -1
 ```
 
-Skip regeneration if either the working tree is dirty or ANY commit in
-the file's history has a subject that does NOT start with `Docent:`. We
-check the full history, not just the last commit — a single human edit
-anywhere in the past permanently moves the file to "co-owned."
+Skip regeneration if the working tree is dirty OR there is any non-Docent
+commit in the file's history *after* the last Docent-authored commit.
+Commits BEFORE the last Docent commit don't matter — Docent's own write
+supersedes them.
 
-**Signal 2: body hash matches what Docent wrote.**
+Rationale: the rule treats "what Docent most recently put in the file"
+as the reference point. Pre-invariant history doesn't poison the file
+forever; as soon as Docent writes with a `Docent:` prefix, the clock
+resets. The attack vector (a human spoofing the prefix after a Docent
+write) is caught by Signal 2 for MDX files.
 
-Compute the SHA-256 of the file body (everything after the closing `---`
-of the frontmatter; or the whole file for JSON). Compare to the
-recorded `bodyHash` (MDX) or `sourceSnapshot.issueSetHash`-validated
-content (status.json).
+**Edge case: no Docent commit in history.** If `git log | grep "^Docent:"`
+returns nothing, the file has never been Docent-authored with a proper
+prefix. Treat as co-owned — skip regeneration. The user should re-run
+`init` (or manually prefix a future Docent commit) to establish the
+reference.
 
-For MDX files:
+**Signal 2 (MDX only): body hash matches what Docent wrote.**
+
+Applies to MDX files with a `bodyHash` field in frontmatter. Does NOT
+apply to JSON files — status.json has no separate "body" to hash, and
+its `sourceSnapshot.issueSetHash` is a *freshness* signal (derived
+from GitHub state) rather than a *content* signal (hash of what's on
+disk). For JSON, Signal 1 alone is the ownership check.
+
+Compute the SHA-256 of the MDX body (everything after the closing `---`
+of the frontmatter) and compare to the recorded `bodyHash`:
+
 ```bash
 awk 'BEGIN{n=0} /^---$/{n++; next} n>=2 {print}' docs/content/overview.mdx | \
   sha256sum | awk '{print $1}'
@@ -60,10 +84,11 @@ was edited — skip regardless of what the commit log says. This catches
 the case a human accidentally (or deliberately) used a `Docent:` commit
 subject: the hash won't match.
 
-**Both signals must pass** for machine-ownership. Either failing → skip.
-Defense in depth: commits can be subject-spoofed, but you can't spoof
-the hash unless you carefully re-hash and rewrite the frontmatter,
-which is well past "accidental."
+**For MDX files, both signals must pass** for machine-ownership. For
+JSON files, Signal 1 is sufficient. Either failing → skip. Defense in
+depth for MDX: commits can be subject-spoofed, but you can't spoof the
+hash unless you carefully re-hash and rewrite the frontmatter, which is
+well past "accidental."
 
 ### Step 2b — Regeneration writes fresh anchors
 
