@@ -1,6 +1,10 @@
 {
   "generatedAt": "2026-04-19T00:00:00Z",
   "openIssueCount": 5,
+  "sourceSnapshot": {
+    "issueSetHash": "020e7ad02244a3e1dbd177c74e7a32c642a15ff4bb9cb7b0c3105efd56bce719",
+    "openIssueCount": 5
+  },
   "groups": [
     {
       "label": "Bugs",

@@ -146,6 +146,21 @@ Users opt in by copying them manually later.
 
 Create `docs/content/` and fill it:
 
+Every generated file records one or more **source anchors** so
+`update` mode can detect staleness without re-running the expensive
+generation step. MDX files also record a `bodyHash` (SHA-256 of the
+body, excluding frontmatter) so `update` can detect hand edits
+independent of the git commit log.
+
+| Content | Derived from | Anchor fields |
+|---|---|---|
+| `overview.mdx` | `README.md` | `sourceFiles: [{ path: "README.md", sha: ... }]`, `bodyHash` |
+| `status.json` | GitHub Issues API | `sourceSnapshot: { issueSetHash, openIssueCount }` |
+| `changelog.mdx` | git tags + HEAD | `sourceCommit: <short HEAD sha>`, `bodyHash` |
+| `journal/*.mdx` | commit range | `commitRange: <first>..<last>`, `bodyHash` |
+
+See `schemas/frontmatter.schema.json` for exact shapes.
+
 **`docs/content/overview.mdx`**
 - Read `README.md` and any obvious structural hints (top-level directories,
   language manifests).
@@ -153,6 +168,7 @@ Create `docs/content/` and fill it:
 - Load the overview-writing system prompt from `prompts/overview-system.md`.
 - Produce 300–800 words explaining what the project is, who it's for, and
   how someone gets started. Prioritize accessibility for non-contributors.
+- **Anchors**: record `sourceFiles: [{ path: "README.md", sha: <output of `git hash-object README.md`> }]` AND `bodyHash: <SHA-256 of the MDX body>` in frontmatter. See the **Computing bodyHash** note below.
 
 **`docs/content/status.json`**
 - Fetch open issues: `gh issue list --state open --limit 100 --json number,title,labels,updatedAt,url`.
@@ -161,6 +177,20 @@ Create `docs/content/` and fill it:
 - Group issues into sensible categories (Bugs, In progress, Feature
   requests, Other) based on labels and content. Write the JSON per the schema
   in `schemas/status.schema.json`.
+- **Anchor**: compute an `issueSetHash`:
+  1. For each filtered issue, produce tuple `{number, updatedAt, state, labels[sorted]}`.
+  2. Sort tuple list by `number`.
+  3. Serialize as canonical JSON (UTF-8, sorted keys, no whitespace).
+  4. SHA-256 of the serialization.
+
+  Include `sourceSnapshot: { issueSetHash, openIssueCount }` as a
+  top-level object in `status.json`. The hash is the authoritative
+  freshness signal; the count is retained for human readability.
+
+  Empty-state case (zero issues after filtering): `issueSetHash` is
+  the SHA-256 of the literal string `[]`
+  (`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`)
+  — deterministic, matches whenever the set stays empty.
 
 **`docs/content/changelog.mdx`**
 - Fetch tags: `git tag --sort=-creatordate`.
@@ -168,6 +198,7 @@ Create `docs/content/` and fill it:
   previous tag: `git log {prev}..{tag} --oneline --no-merges`.
 - Write release entries using the template in SPEC §4.4.
 - If there are no tags, write a placeholder: "No tagged releases yet."
+- **Anchors**: record `sourceCommit: <output of `git rev-parse --short HEAD`>` AND `bodyHash: <SHA-256 of the MDX body>` in frontmatter.
 
 **`docs/content/journal/{ISO date}-inaugural.mdx`**
 - Write a single "project so far" post summarizing the repo's history.
@@ -181,6 +212,29 @@ Create `docs/content/` and fill it:
 - Tone should be welcoming — this is likely the first post a visitor
   reads — but honest: frame it as reading the commit log, not as
   reporting on work you were present for.
+- **Anchors**: record `commitRange: <first-commit-sha>..<HEAD-sha>` and `bodyHash` in frontmatter. Journal posts are immutable once written; `update` never regenerates them, but the anchor is used by the *next* digest to find its start point. The `bodyHash` is present for consistency even though digest/update don't gate on it.
+
+---
+
+**Computing `bodyHash` for MDX files**
+
+The body is everything *after* the closing `---` of the frontmatter —
+i.e. the MDX content itself, not the YAML header. Compute the hash
+over the body ONLY (so frontmatter fields like `generatedAt` or
+`bodyHash` itself don't affect it). Procedure:
+
+1. Write the file with frontmatter + body (no `bodyHash` field yet).
+2. Extract the body: everything after the second `---` line.
+3. Compute `sha256(body)`.
+4. Rewrite the file with `bodyHash: <hash>` added to the frontmatter.
+
+Shell helper (POSIX awk):
+```bash
+awk 'BEGIN{n=0} /^---$/{n++; next} n>=2 {print}' <file> | sha256sum | awk '{print $1}'
+```
+
+The same procedure is used in `update` mode Step 2's hand-edit
+check. Matching implementations on both sides is the whole point.
 
 ### Step 7.5 — Analyze the repo's design and write `theme.json`
 
