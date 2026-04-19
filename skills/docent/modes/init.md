@@ -241,13 +241,26 @@ This PR scaffolds a Docent-maintained site at `/docs`.
      ```
 2. **Merge this PR.** The deploy workflow runs automatically.
 3. **Set up the Routines** that keep content fresh. In any Claude Code
-   session, run:
+   session, run these two commands. Each spawns a remote environment
+   that starts with *nothing installed* — the prompts must bootstrap
+   the Docent plugin before dispatching to the mode:
+
    ```
-   /schedule update Docent daily at 10:17 — prompt: "Docent: run update mode."
-   /schedule digest Docent weekly on Mondays at 9:17 — prompt: "Docent: run digest mode."
+   /schedule Docent update daily at 10:17 — If the Docent skill is not available in this environment, run `/plugin marketplace add calumjs/docent` and `/plugin install docent@docent` first. Then follow skills/docent/modes/update.md against the current repo.
    ```
-   Or configure them at claude.ai/code/routines. Routines use your Claude
-   Code subscription — no `ANTHROPIC_API_KEY` required.
+
+   ```
+   /schedule Docent digest weekly on Mondays at 9:17 — If the Docent skill is not available in this environment, run `/plugin marketplace add calumjs/docent` and `/plugin install docent@docent` first. Then follow skills/docent/modes/digest.md against the current repo.
+   ```
+
+   The bootstrap clause is there because Claude Code Routines run in a
+   clean remote CCR environment that does NOT inherit plugins from the
+   maintainer's local session — without it, the first scheduled run
+   fails silently and the site quietly goes stale.
+
+   Or configure the routines at claude.ai/code/routines directly,
+   including the same bootstrap text in each prompt. Routines use your
+   Claude Code subscription — no `ANTHROPIC_API_KEY` required.
 
 The site will be live at {{homepage}} shortly after the first deploy.
 EOF
@@ -256,10 +269,43 @@ EOF
 
 ### Step 10 — Report back to the user
 
-Report the PR URL and echo the three-step checklist from the PR body. Make
-the two `/schedule` commands the most prominent part of the reply —
-they're the step the user most often forgets. Call out that Routines run
-on their subscription plan, not via a separate API key.
+Report the PR URL and echo the three-step checklist from the PR body.
+Make the two routine-creation commands the most prominent part of the
+reply — they're the step the user most often forgets. Call out that
+Routines run on their subscription plan, not via a separate API key.
+
+**Offer to create the routines directly.** At the end of the report,
+ask whether the user wants you to set up the two routines now. If they
+agree, invoke the `schedule` skill (via the Skill tool) with the two
+routine definitions below. This saves the user from pasting the long
+bootstrap prompts manually.
+
+The two routine definitions to pass:
+
+1. Name: `Docent update`. Cron: daily at 10:17 local (convert to UTC
+   for the cron expression based on the user's timezone). Prompt:
+   ```
+   If the Docent skill is not available in this environment, run:
+     /plugin marketplace add calumjs/docent
+     /plugin install docent@docent
+   Then follow skills/docent/modes/update.md against this repo. Open
+   a PR against the default branch if anything changed.
+   ```
+
+2. Name: `Docent digest`. Cron: Mondays at 9:17 local (convert to UTC).
+   Prompt:
+   ```
+   If the Docent skill is not available in this environment, run:
+     /plugin marketplace add calumjs/docent
+     /plugin install docent@docent
+   Then follow skills/docent/modes/digest.md against this repo. Open
+   a PR against the default branch with the new journal post.
+   ```
+
+Both routines target the user's GitHub repo (owner/repo already
+collected in Step 1). If the user declines the offer or the schedule
+skill isn't available, fall back to printing the paste-these commands
+from Step 9's PR body.
 
 ## Exit conditions
 
