@@ -250,6 +250,13 @@ This PR scaffolds a Docent-maintained site at `/docs`.
    Code subscription — no `ANTHROPIC_API_KEY` required.
 
 The site will be live at {{homepage}} shortly after the first deploy.
+
+---
+
+_Did Docent get something wrong during scaffolding — a prompt that
+missed the mark, a step that failed, a default that doesn't fit this
+project? Open Claude Code, say **"Docent, suggest"**, and it'll help
+you file feedback against [calumjs/docent](https://github.com/calumjs/docent/issues)._
 EOF
 )"
 ```
@@ -260,6 +267,18 @@ Report the PR URL and echo the three-step checklist from the PR body. Make
 the two `/schedule` commands the most prominent part of the reply —
 they're the step the user most often forgets. Call out that Routines run
 on their subscription plan, not via a separate API key.
+
+End the reply with a short invitation to file feedback:
+
+> Noticed something that felt off during scaffolding — a prompt that
+> missed the mark, a step that failed, a default that doesn't fit your
+> project? Say **"Docent, suggest"** anytime and I'll help you file it
+> against calumjs/docent. Every report sharpens the next run.
+
+This nudge is important because init is the moment when the user has
+freshest context on what Docent just did and didn't do well. Waiting
+until they notice again is a longer feedback loop than just asking
+now.
 
 ## Exit conditions
 
