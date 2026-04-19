@@ -2,52 +2,56 @@
 title: "Docent"
 tagline: "Turn any GitHub repo into a public-facing, self-maintaining website."
 generatedBy: "docent"
-generatedAt: "2026-04-18T23:00:00Z"
-mode: "init"
+generatedAt: "2026-04-19T08:00:00Z"
+mode: "update"
 sourceFiles:
   - path: "README.md"
-    sha: "24a4ff42ab6198eb59787a6715a9071fcd76b8a7"
-bodyHash: "bbbf35754f9634afd2236c38c7ab7962619274d448c52105376ef22df5b91e51"
+    sha: "088a040fa29e82987c82c54ad564c5602cd9f7de"
+bodyHash: "2b1a672d2f96a3e516c7df35e200a0cdc61f272338862a6c5f52d9db2ff45397"
 ---
 
-Docent is a Claude Code skill that gives a repository a public face. It reads
-the repo — the code, the commits, the issues, the releases — and writes a
-small website that explains what the project is, what's been happening, and
-what's broken. The site lives in `/docs` inside the same repo, deploys to
-GitHub Pages, and updates itself on a schedule without any hosted service
-behind it.
+Docent turns a GitHub repository into a public-facing static website. It reads
+the repo — commits, issues, releases, the README — and writes a small site that
+explains what the project is, what's been shipping, and what's open. The site
+lives in `/docs` inside the same repo, deploys to GitHub Pages, and updates
+itself on a schedule through Claude Code Routines.
 
 ## Who it's for
 
 A solo maintainer or a small team with a project that deserves a better
-introduction than a README. The kind of project where people show up via
-search or a link, want a human-readable answer to "what is this and should I
-care," and don't currently get one.
+introduction than a README. Docent is useful when people show up from search or
+a link and want a human-readable answer to "what is this and should I care" —
+and currently get a wall of markdown.
 
 Docent is not a replacement for API documentation tools like Docusaurus or
 MkDocs. Those describe how a library works. Docent describes what a project
-*is* — the pitch, the status, the story so far — for visitors who might
-never read the code.
+*is*: the pitch, the status, the story so far — for visitors who might never
+read the code.
 
 ## How it works
+
+Two install commands bring the skill into any Claude Code session. From there,
+one conversation sets up the site: Docent asks about tone and cadence, reads
+the repo for design signals, scaffolds an Astro site under `/docs`, generates
+the initial content, and opens a pull request.
+
+After merging, a daily Routine keeps the site current. The same Routine decides
+whether to refresh the status page, write a journal post, or both — based on
+what's happened in the repo since the last run. Nothing goes live without a
+pull request.
 
 Docent has five modes, each a procedure the skill runs when you ask for it:
 
 - **`init`** scaffolds the `/docs` site and writes the first content.
-- **`update`** refreshes the status page and overview as issues and
-  the README change.
+- **`update`** refreshes the status page and overview as issues and the README change.
 - **`digest`** writes a journal post summarizing recent activity.
 - **`release`** turns a new tag into a changelog entry.
-- **`triage`** drafts suggestions for new issues, without ever touching
-  them automatically.
+- **`triage`** drafts suggestions for new issues, without ever touching them automatically.
 
-The generated content — overview, journal posts, status summaries,
-changelog — lives in `/docs/content/` as structured MDX and JSON. An
-Astro site template in `/docs/src/` renders it. The two halves are owned
-separately: Docent writes the content; you own the presentation.
-
-Every change Docent produces is a pull request. Nothing goes live until a
-human reviews and merges it.
+The generated content — overview, journal posts, status summaries, changelog —
+lives in `/docs/content/` as structured MDX and JSON. An Astro site template
+in `/docs/src/` renders it. The two halves are owned separately: Docent writes
+the content; you own the presentation.
 
 ## Getting started
 
@@ -57,15 +61,9 @@ Install the skill into your repo, then open Claude Code and say:
 set up Docent for this repo
 ```
 
-Docent walks through the rest — asks a few questions, scaffolds the site,
-generates an initial overview and journal post, and opens a PR with the
-whole thing. After that, two Claude Code Routines (set up once via
-`/schedule`) keep the site current on your subscription tokens. No API keys.
-No CI secrets beyond GitHub Pages itself.
-
-See the [README](https://github.com/calumjs/docent) for install details,
-or the [SPEC](https://github.com/calumjs/docent/blob/master/SPEC.md) for
-the full design.
+Docent walks through the rest. See the [README](https://github.com/calumjs/docent)
+for the full install steps, or the [SPEC](https://github.com/calumjs/docent/blob/master/SPEC.md)
+for the design.
 
 ## What this site is
 
