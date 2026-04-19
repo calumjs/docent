@@ -80,7 +80,9 @@ Default contents:
   "journal": {
     "cadence": "{{chosen cadence}}",
     "announceReleases": true,
-    "minCommitsPerPost": 3
+    "minCommitsPerPost": 3,
+    "backfill": true,
+    "backfillLimit": 12
   },
   "status": {
     "groupStrategy": "auto",
@@ -164,11 +166,66 @@ Create `docs/content/` and fill it:
 - Write release entries using the template in SPEC §4.4.
 - If there are no tags, write a placeholder: "No tagged releases yet."
 
-**`docs/content/journal/{ISO date}-inaugural.mdx`**
-- Write a single "project so far" post summarizing the repo's history.
-- Use commit history, tags, and README to identify the project's origin and
-  major milestones.
-- Tone should be welcoming — this is likely the first post a visitor reads.
+**`docs/content/journal/*.mdx` — backfill posts**
+
+Journal generation branches on `journal.backfill` in config. Default
+is `true` (partition history); `false` writes a single inaugural.
+
+**If `journal.backfill === true`** (default):
+
+1. **Walk history chronologically**:
+   ```bash
+   git log --reverse --no-merges --format='%H|%aI|%s'
+   ```
+2. **Bucket commits by cadence** (from `journal.cadence`):
+   - `weekly`: week starts Monday 00:00 in the author's timezone (use
+     commit's `%aI` date). Group commits by ISO week.
+   - `biweekly`: every other Monday; pair adjacent weeks.
+   - `monthly`: first of month.
+   - `manual`: fall back to `weekly` for bucketing; the cadence field
+     only governs scheduled digests, not backfill.
+3. **Drop buckets with fewer than `journal.minCommitsPerPost` commits**
+   — no "quiet week" filler for dead periods.
+4. **Apply the cap**. If more than `journal.backfillLimit` buckets
+   remain, keep the most recent `backfillLimit - 1` buckets as
+   individual posts and collapse all older buckets into one "Early
+   history" roundup post (date = last commit of the oldest kept
+   bucket minus one second, so it sorts first chronologically).
+5. **For each kept bucket**, generate one post:
+   - Filename: `{YYYY-MM-DD}-{slug}.mdx` where date is the bucket's
+     last commit date and slug is kebab-case derived from the post's
+     headline (the model picks a headline; see
+     `prompts/journal-system.md` §Inaugural-and-backfill).
+   - Frontmatter:
+     ```yaml
+     date: "{last-commit-date}"
+     mode: "backfill"
+     commitRange: "{first-sha}..{last-sha}"
+     generatedBy: "docent"
+     generatedAt: "{ISO timestamp}"
+     ```
+   - Apply the **Inaugural and backfill posts** section of
+     `prompts/journal-system.md`. These posts are retrospective
+     reconstructions, not contemporaneous reporting — frame them
+     honestly ("Looking at the commits from this period, …").
+   - The oldest backfill post implicitly opens the archive; do NOT
+     also write a separate welcome/inaugural post.
+
+**If `journal.backfill === false`**:
+
+Write a single `docs/content/journal/{YYYY-MM-DD}-inaugural.mdx` using
+the "project so far" approach — whole-repo-history scope, welcoming
+first-visitor voice, `mode: "init"`, `commitRange: {first-sha}..{HEAD-sha}`.
+
+**Why a cap matters**: cost scales linearly with bucket count. A
+5-year repo on weekly cadence is 260 Claude calls uncapped. With
+`backfillLimit: 12` it's 13 calls regardless of repo age.
+
+**Honesty with history**: force-pushed or rebased commits produce
+timestamps that don't reflect when work actually happened. Don't try
+to work around this; just note it in the init PR body so the
+maintainer knows the backfilled dates are git-authoritative, not
+memory-authoritative.
 
 ### Step 7.5 — Analyze the repo's design and write `theme.json`
 
@@ -230,7 +287,16 @@ This PR scaffolds a Docent-maintained site at `/docs`.
 - Overview page based on this repo's README and structure
 - Status page summarizing {{N}} open issues
 - Changelog with {{N}} release entries
-- Inaugural journal post
+- **{{N}} backfill journal posts** covering the repo's history
+  ({{bucket description}}):
+  {{each filename on its own line, oldest first}}
+
+> **About the backfill posts**: these are **retrospective
+> reconstructions** from the commit log, not contemporaneous reporting.
+> Please scan-check each post — Docent is doing archaeology, not
+> remembering what you were actually thinking at the time. Dates are
+> git-authoritative; any force-pushed or rebased history will produce
+> dates that don't reflect when work really happened.
 
 ## Next steps
 

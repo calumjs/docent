@@ -41,7 +41,18 @@
           "enum": ["weekly", "biweekly", "monthly", "manual"]
         },
         "announceReleases": { "type": "boolean" },
-        "minCommitsPerPost": { "type": "integer", "minimum": 0 }
+        "minCommitsPerPost": { "type": "integer", "minimum": 0 },
+        "backfill": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, `init` partitions git history into cadence-aligned buckets and writes one dated post per bucket instead of a single inaugural post. Posts marked `mode: \"backfill\"` are immutable to scheduled runs."
+        },
+        "backfillLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 12,
+          "description": "Maximum number of backfill posts `init` will generate. Caps cost on long-history repos — buckets older than the cap are collapsed into one 'Early history' roundup post."
+        }
       }
     },
     "status": {
