@@ -53,27 +53,51 @@ want to fire off a one-liner per question should be able to.
 
 ### Step 2 — Gather environment
 
-Collect context the maintainer will want when triaging, so they don't
-have to ask:
+The issue will be filed on a **public** repository (calumjs/docent).
+Collect only a minimal, non-identifying whitelist of fields — never
+the raw `docent.config.json` or raw repo metadata. A feedback issue
+doesn't need to know which user is filing or which private project
+they're filing from; the maintainer can reproduce from the mode +
+plugin version + a handful of behaviour-shaping flags.
+
+**Do this**:
 
 ```bash
-# Docent config
-cat docent.config.json 2>/dev/null
+# Plugin version only — from plugin.json, NOT the whole file
+node -e 'console.log(require("${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json").version)' 2>/dev/null
 
-# Plugin version — inspect the installed plugin's plugin.json
-cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" 2>/dev/null
+# Whether the source repo is public or private (affects publishing
+# context; matters for the privacy warning in Step 4.5)
+gh repo view --json visibility -q .visibility 2>/dev/null
 
-# Repo identity (so maintainer can reproduce against a similar project)
-gh repo view --json name,owner,primaryLanguage,repositoryTopics 2>/dev/null
+# From docent.config.json: read it yourself, extract only:
+#   tone, journal.cadence, journal.backfill, journal.backfillLimit
+# Nothing else. Do NOT include project.{name,owner,repo,homepage},
+# deploy.customDomain, or any other field.
 ```
 
+**Do NOT do**:
+
+- Do NOT `cat docent.config.json` into the issue body. The project
+  name, owner slug, custom domain, and (if edited) excludeLabels are
+  identifying or potentially sensitive for private projects.
+- Do NOT run `gh repo view` with `name,owner,primaryLanguage,
+  repositoryTopics`. The owner and repo name identify the user's
+  project to everyone who reads calumjs/docent's issue tracker. The
+  `gh issue create` author field already tells the maintainer who
+  filed it; there's no need to embed owner/repo in the body.
+- Do NOT include git config email, commit messages, or any string
+  scraped from the user's filesystem beyond what's explicitly listed
+  above.
+
 If `docent.config.json` doesn't exist (user is filing feedback on the
-`init` mode itself before it's run), record that as "no config — init
-hadn't been run."
+`init` mode itself before it's run), record behaviour flags as
+"config not yet written."
 
 ### Step 3 — Compose the issue body
 
-Template:
+Template. Note: the environment block is a small, specific whitelist —
+no raw config dump, no identifying repo metadata.
 
 ```markdown
 ## What kind of feedback
@@ -92,43 +116,71 @@ rewritten. If they wrote a one-liner, leave it short.}
 ---
 
 <details>
-<summary>Environment (auto-collected, click to expand)</summary>
+<summary>Environment (whitelisted fields, click to expand)</summary>
 
-**Docent plugin version:** {from plugin.json's version field}
+- **Docent plugin version:** {e.g. 0.1.0}
+- **Tone:** {neutral / formal / playful / technical}
+- **Journal cadence:** {weekly / biweekly / monthly / manual}
+- **Backfill:** {on with limit N / off}
+- **Source repo visibility:** {public / private}
 
-**Source repo:** {owner}/{name} ({primaryLanguage}, topics: {topics})
-
-**docent.config.json:**
-```json
-{contents, or "no config — init hadn't been run"}
-```
+_(No project name, owner, repo, domain, or config contents are
+included here — those identify the user's project and aren't needed
+for Docent triage.)_
 
 </details>
 
 ---
 
-_Filed via Docent `suggest` mode from {owner}/{name}._
+_Filed via Docent `suggest` mode._
 ```
 
-### Step 4 — Redact
+The footer intentionally does NOT say "from {owner}/{name}" — that
+would re-leak identity the whitelist was built to avoid. The `gh
+issue create` author field carries the filer's identity to the
+maintainer without exposing which of their projects was involved.
 
-Before showing the body to the user, run a redaction pass. Replace
+### Step 4 — Redact the prose
+
+The whitelist in Step 2 keeps structured config data out of the body
+by construction. But the user's **prose answers** (to "what happened",
+"where did you notice it") are free-form and can still contain
+secrets — a pasted error message with a token in it, a copied URL with
+credentials. Run a redaction pass over the prose fields only. Replace
 matches with `[REDACTED]`:
 
 - GitHub tokens: `gh[oprs]_[A-Za-z0-9]{20,}`
 - AWS access keys: `AKIA[0-9A-Z]{16}`
+- GCP service-account keys: `-----BEGIN PRIVATE KEY-----` through the
+  matching `-----END PRIVATE KEY-----`
+- JWTs: `eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+`
+- URLs containing `:` + `@` (basic-auth in URL): e.g. `https://user:pass@host`
 - Generic high-entropy 32+ char hex or base64 runs that appear next to
-  a keyword like `token`, `key`, `secret`, `password`, `api_key`
-- Private email addresses that show up in git config or commit
-  messages inside `docent.config.json` (shouldn't happen, but check)
+  keywords like `token`, `key`, `secret`, `password`, `api_key`, `bearer`
+- Email addresses (unless they're clearly public — GitHub noreply,
+  e.g. `@users.noreply.github.com` stays)
 
-SKILL.md invariant 3 already forbids writing secrets into generated
-*site content*; this step applies the same rule to generated *issue
-content*. Same producer, same duty.
+The regex list is defense-in-depth, not a promise of completeness.
+The primary protection is the whitelist from Step 2: because the
+body never contains raw config or identity fields, there's a much
+smaller surface for a missed pattern to do harm.
 
-If redaction hits on anything, tell the user: "I redacted {N}
-potentially sensitive strings before filing. Please review the preview
-before confirming." Then show the redacted body.
+SKILL.md invariant 3 forbids writing secrets into generated *site
+content*; this extends the same rule to generated *issue content*.
+
+### Step 4.5 — Private-repo warning
+
+If the source repo's visibility (collected in Step 2) is `private`,
+show an extra explicit warning before the confirmation prompt:
+
+> **Heads up**: you're filing feedback from a **private** repository
+> into a **public** issue tracker (calumjs/docent). The environment
+> block only includes Docent behaviour flags (tone, cadence, plugin
+> version, visibility) — no project name, owner, or config content.
+> But your prose description will be public. Review it for any
+> internal details before confirming.
+
+The Step 5 confirmation still waits for explicit user approval.
 
 ### Step 5 — Confirm with the user
 
