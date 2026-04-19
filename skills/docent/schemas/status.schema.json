@@ -7,6 +7,15 @@
   "properties": {
     "generatedAt": { "type": "string", "format": "date-time" },
     "openIssueCount": { "type": "integer", "minimum": 0 },
+    "sourceSnapshot": {
+      "type": "object",
+      "description": "State snapshot used by `update` mode to detect staleness without diffing summaries. If `newestIssueUpdatedAt` and `openIssueCount` both match the current GitHub state, status is fresh and skipped.",
+      "properties": {
+        "newestIssueUpdatedAt": { "type": "string", "format": "date-time" },
+        "openIssueCount": { "type": "integer", "minimum": 0 },
+        "closedIssueCountSince": { "type": "integer", "minimum": 0 }
+      }
+    },
     "groups": {
       "type": "array",
       "items": {

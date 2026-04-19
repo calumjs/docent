@@ -141,6 +141,20 @@ Users opt in by copying them manually later.
 
 Create `docs/content/` and fill it:
 
+Every generated file records a **source anchor** in its frontmatter
+(or top-level JSON fields) so `update` mode can detect staleness
+without re-running the expensive generation step. The anchor kind
+depends on where the content was derived from:
+
+| Content | Derived from | Anchor field |
+|---|---|---|
+| `overview.mdx` | `README.md` | `sourceFiles: [{ path: "README.md", sha: ... }]` |
+| `status.json` | GitHub Issues API | `sourceSnapshot: { newestIssueUpdatedAt, openIssueCount }` |
+| `changelog.mdx` | git tags + HEAD | `sourceCommit: <short HEAD sha>` |
+| `journal/*.mdx` | commit range | `commitRange: <first>..<last>` (already existed) |
+
+See `schemas/frontmatter.schema.json` for exact shapes.
+
 **`docs/content/overview.mdx`**
 - Read `README.md` and any obvious structural hints (top-level directories,
   language manifests).
@@ -148,6 +162,7 @@ Create `docs/content/` and fill it:
 - Load the overview-writing system prompt from `prompts/overview-system.md`.
 - Produce 300–800 words explaining what the project is, who it's for, and
   how someone gets started. Prioritize accessibility for non-contributors.
+- **Anchor**: record `sourceFiles: [{ path: "README.md", sha: <output of `git hash-object README.md`> }]` in frontmatter.
 
 **`docs/content/status.json`**
 - Fetch open issues: `gh issue list --state open --limit 100 --json number,title,labels,updatedAt,url`.
@@ -156,6 +171,7 @@ Create `docs/content/` and fill it:
 - Group issues into sensible categories (Bugs, In progress, Feature
   requests, Other) based on labels and content. Write the JSON per the schema
   in `schemas/status.schema.json`.
+- **Anchor**: include a `sourceSnapshot` object with `openIssueCount` (same as top-level field) and `newestIssueUpdatedAt` (the most recent `updatedAt` across all fetched issues).
 
 **`docs/content/changelog.mdx`**
 - Fetch tags: `git tag --sort=-creatordate`.
@@ -163,12 +179,14 @@ Create `docs/content/` and fill it:
   previous tag: `git log {prev}..{tag} --oneline --no-merges`.
 - Write release entries using the template in SPEC §4.4.
 - If there are no tags, write a placeholder: "No tagged releases yet."
+- **Anchor**: record `sourceCommit: <output of `git rev-parse --short HEAD`>` in frontmatter.
 
 **`docs/content/journal/{ISO date}-inaugural.mdx`**
 - Write a single "project so far" post summarizing the repo's history.
 - Use commit history, tags, and README to identify the project's origin and
   major milestones.
 - Tone should be welcoming — this is likely the first post a visitor reads.
+- **Anchor**: record `commitRange: <first-commit-sha>..<HEAD-sha>` in frontmatter. Journal posts are immutable once written; `update` never regenerates them, but the anchor is used by the *next* digest to find its start point.
 
 ### Step 7.5 — Analyze the repo's design and write `theme.json`
 

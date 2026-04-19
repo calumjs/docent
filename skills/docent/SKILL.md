@@ -50,7 +50,9 @@ These rules apply regardless of which mode is running:
 
 2. **PR-gated output.** Never push directly to the default branch. Always:
    - create a new branch named `docent/{mode}-{ISO-date}`
-   - commit changes to it
+   - commit changes to it; **every commit subject must start with
+     `Docent:`** — update mode's hand-edit detection uses this prefix
+     to tell machine-authored commits from human edits
    - push the branch
    - open a pull request using `gh pr create`
    - report the PR URL back to the user
@@ -65,6 +67,11 @@ These rules apply regardless of which mode is running:
 5. **Idempotency.** If running the mode would produce no meaningful change
    (e.g., `update` with no new issues and no stale overview), exit without
    opening a PR. Report "nothing to update" to the user.
+
+   The mechanism for this is **source anchors** recorded in generated
+   files' frontmatter — `sourceCommit`, `sourceFiles`, `sourceSnapshot`.
+   See `schemas/frontmatter.schema.json`. Modes compare anchors to
+   current repo/external state and skip regeneration when they match.
 
 6. **Deterministic ordering.** When listing things in generated content
    (issues, commits, releases), use stable ordering — chronological for
