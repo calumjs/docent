@@ -39,12 +39,11 @@ After merging the PR, two manual steps only you can do:
    ```
    (Or via the web UI: **Settings → Pages → Source → GitHub Actions**.)
 
-2. **Set up the two Routines** that keep content fresh:
+2. **Set up the Routine** that keeps content fresh:
    ```
-   /schedule update Docent daily at 10:17 — prompt: "Docent: run update mode."
-   /schedule digest Docent weekly on Mondays at 9:17 — prompt: "Docent: run digest mode."
+   /schedule Docent update daily at 08:00 — prompt: "Docent: run update mode."
    ```
-   Routines use your Claude Code subscription tokens — no `ANTHROPIC_API_KEY` required.
+   One routine, adaptive output: update mode decides for itself whether to refresh content, write a journal post, both, or nothing — based on what's happened in the repo since the last run. Routines use your Claude Code subscription tokens — no `ANTHROPIC_API_KEY` required.
 
 You can also invoke Docent manually anytime: **"Docent, write a journal post about the auth refactor."**
 

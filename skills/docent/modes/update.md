@@ -1,8 +1,30 @@
 # Mode: `update`
 
-Refresh status, overview, and changelog when their sources have changed.
-Runs on a schedule (typically daily) or when the user says "update
-Docent" / "refresh the site."
+The daily routine. Refreshes status / overview / changelog when their
+sources have changed, and — on days where enough interesting activity
+has landed — also writes a new journal post summarizing the period.
+One mode, one Routine, adaptive output.
+
+Runs on a daily schedule, or when the user says "update Docent" /
+"refresh the site."
+
+## Outputs at a glance
+
+Depending on what's happened since the last run, one update can produce:
+
+1. **Nothing.** No anchors drifted and no journal-worthy activity → no
+   PR, silent exit (honors SKILL.md invariant 5 idempotency).
+2. **Content refresh only.** Status/overview/changelog anchors drifted
+   but recent activity isn't substantial enough for a journal post →
+   one PR with the stale content regenerated.
+3. **Content refresh + journal post.** Anchors drifted AND enough has
+   happened to tell a story → one PR combining both.
+4. **Journal post only** (rare). Anchors fresh but a lot has shipped
+   (e.g., all in the same day, all touching things unrelated to
+   README / issues / tags) → one PR with just the new journal post.
+
+Journal posts never overwrite existing posts; they always append.
+Existing posts are immutable (SKILL.md invariant 8).
 
 ## Preconditions
 
@@ -174,29 +196,119 @@ writing. This records the commit Docent reconciled against; a future
 run comparing `sourceCommit` to HEAD is a cheap first-pass check
 before doing the expensive tag-set diff.
 
-### Step 6 — If nothing changed, exit
+### Step 6 — Decide whether to write a journal post
+
+Journal posts land on days when something worth reading about has
+happened, not on a fixed cadence. Use judgment — the thresholds below
+are suggestions, not rules.
+
+**Gather the window.**
+
+Find the most recent `docs/content/journal/*.mdx` post. Its frontmatter
+`commitRange` ends at some SHA; the window is from there to current
+`HEAD`. If no prior posts exist, use the most recent 7 days of commits.
+
+```bash
+# Newest journal post (filename is ISO-dated, so `ls -r` is chronological)
+ls -r docs/content/journal/*.mdx | head -1
+
+# Activity in the window
+gh pr list --state merged --search "merged:>{start-date}" --limit 50 \
+  --json number,title,body,labels,mergedAt,author
+
+gh issue list --state closed --search "closed:>{start-date}" --limit 50 \
+  --json number,title,labels,closedAt
+
+git log {start-ref}..HEAD --no-merges --format='%h|%an|%s'
+
+git tag --contains {start-ref} --sort=creatordate
+```
+
+**Decide whether to post.**
+
+Rough guidance (adjust based on the shape of the project — a repo that
+ships one PR a quarter vs. one a day has very different "interesting"
+bars):
+
+- **Likely post**: ≥ 3 merged PRs OR ≥ 10 non-merge commits in the
+  window, AND the window spans at least ~2 days of activity.
+- **Likely skip**: < 3 merged PRs AND < 10 commits, OR everything is
+  purely internal (dependency bumps, whitespace, one-char typo fixes),
+  OR the last journal post was less than 2 days ago.
+- **Definitely post**: a new release tag appeared in the window (covered
+  separately by `release` mode's announce flag, but still — a tagged
+  release always deserves at least a mention).
+- **Definitely skip**: nothing merged, nothing closed, no tags, fewer
+  than 3 meaningful commits.
+
+These are *suggestions*. Ultimately: if you can write a post with 2–5
+coherent themes that a non-contributor would find worth reading, write
+it. If the best you can manage is "some small fixes shipped," skip.
+Honest silence beats padded prose.
+
+**Also consider cadence.** If the last post was yesterday, raise the
+bar significantly — an active project shouldn't produce daily journal
+posts. "≥ 2 days since the last post" is a soft floor unless something
+genuinely large landed in the last 24h (big release, major refactor,
+significant incident).
+
+**If the decision is skip**, skip Step 6's write — the update still
+proceeds with whatever content regeneration it found. If the decision
+is post, continue.
+
+**Write the post.**
+
+Follow `prompts/journal-system.md` for voice and structure. Filename:
+`docs/content/journal/{YYYY-MM-DD}-{slug}.mdx`. Frontmatter:
+
+```yaml
+---
+title: "Specific headline"
+date: "{YYYY-MM-DD}"
+summary: "One-sentence subtitle."
+tags: ["daily"]                    # or topic-specific tags
+generatedBy: "docent"
+generatedAt: "{ISO timestamp}"
+mode: "digest"
+commitRange: "{start-sha}..{HEAD-sha}"
+bodyHash: "{computed per init.md's bodyHash procedure}"
+---
+```
+
+Use `mode: "digest"` for posts written this way — preserves continuity
+with the (now manually-invoked) digest mode's output shape, and the
+journal index template treats both identically.
+
+Include the new post in the same update PR as any content refresh.
+
+### Step 7 — If nothing changed, exit
 
 If `status.json`, `overview.mdx`, and `changelog.mdx` were all left
-alone, do nothing. Report "Docent: nothing to update" and exit without
-opening a PR. This honors SKILL.md invariant 5 (idempotency).
+alone AND no journal post was written, do nothing. Report "Docent:
+nothing to update" and exit without opening a PR. This honors SKILL.md
+invariant 5 (idempotency).
 
 Running `update` immediately after `init` on an unchanged repo MUST be
 a no-op PR-wise. The anchors are the mechanism.
 
-### Step 7 — Otherwise, commit and open PR
+### Step 8 — Otherwise, commit and open PR
 
 Branch: `docent/update-$(date -u +%Y-%m-%d)`.
 
-PR title: `Docent: update {YYYY-MM-DD}`.
+PR title: one of:
+- `Docent: update {YYYY-MM-DD}` — content refresh only
+- `Docent: journal post — {headline}` — journal post only
+- `Docent: update + journal post — {headline}` — both
 
-PR body: bullet list of what changed and why (which anchor drifted).
+PR body: bullet list of what changed and why (which anchor drifted,
+whether a journal post was added and on what basis).
 
 ```bash
 git checkout -b docent/update-$(date -u +%Y-%m-%d)
 git add docs/content/
-git commit -m "Docent: update status and content"
+git commit -m "Docent: {update|journal post|update + journal post}"
 git push -u origin HEAD
-gh pr create --title "Docent: update $(date -u +%Y-%m-%d)" --body "..."
+gh pr create --title "..." --body "..."
 ```
 
 The `Docent:` commit-subject prefix is load-bearing — Step 2's
@@ -206,8 +318,8 @@ prefix.
 
 ## Exit conditions
 
-- PR opened with the content changes that were actually stale, or
-- No-op reported if everything was fresh.
+- PR opened containing any combination of content refresh + journal post, or
+- No-op reported if everything was fresh AND no journal post was warranted.
 
 ## Never write to theme.json
 
