@@ -30,16 +30,33 @@ gh repo view --json name,description,licenseInfo,primaryLanguage
 
 ### Step 2 — Ask the user for choices
 
-Ask these in ONE message, not sequentially. Provide defaults so the user can
-say "defaults are fine":
+Ask these in ONE message, not sequentially. Provide defaults so the user
+can say "defaults are fine":
 
 1. **Tone** — neutral (default), formal, playful, or technical?
 2. **Journal cadence** — weekly (default), biweekly, monthly, or manual only?
-3. **Custom domain?** — default none; the site will deploy to
+3. **Backfill journal from commit history?** — one of:
+   - **yes, up to 12 posts** (default) — partitions git history into
+     cadence-aligned buckets and writes one dated post per bucket, up
+     to a cap of 12. Oldest buckets collapse into an "Early history"
+     roundup so cost stays bounded on long-history repos.
+   - **yes, custom cap** — user supplies an integer ≥ 2. Minimum of
+     2 because the collapse algorithm needs at least one kept bucket
+     plus a rollup slot.
+   - **no, single welcome post** — `journal.backfill: false` in the
+     generated config. Docent writes one inaugural post spanning the
+     whole history.
+4. **Custom domain?** — default none; the site will deploy to
    `{owner}.github.io/{repo}`.
 
 Do NOT ask about section toggles at init; enable all sections by default.
 Users can disable sections later by editing `docent.config.json`.
+
+Record the user's backfill choice so Step 4's generated
+`docent.config.json` reflects it:
+- "yes, up to 12": `journal.backfill = true`, `journal.backfillLimit = 12`
+- "yes, custom N": `journal.backfill = true`, `journal.backfillLimit = N`
+- "no": `journal.backfill = false`, `journal.backfillLimit = 12` (default retained but unused)
 
 ### Step 3 — Create a working branch
 
@@ -80,7 +97,9 @@ Default contents:
   "journal": {
     "cadence": "{{chosen cadence}}",
     "announceReleases": true,
-    "minCommitsPerPost": 3
+    "minCommitsPerPost": 3,
+    "backfill": {{backfill choice true/false from Step 2}},
+    "backfillLimit": {{backfill cap from Step 2, default 12, minimum 2}}
   },
   "status": {
     "groupStrategy": "auto",
@@ -200,19 +219,86 @@ See `schemas/frontmatter.schema.json` for exact shapes.
 - If there are no tags, write a placeholder: "No tagged releases yet."
 - **Anchors**: record `sourceCommit: <output of `git rev-parse --short HEAD`>` AND `bodyHash: <SHA-256 of the MDX body>` in frontmatter.
 
-**`docs/content/journal/{ISO date}-inaugural.mdx`**
-- Write a single "project so far" post summarizing the repo's history.
-- Use commit history, tags, and README to identify the project's origin and
-  major milestones.
-- Follow the **Inaugural and backfill posts** section of
-  `prompts/journal-system.md`, NOT the digest guidance. The inaugural
-  post spans the whole repo history, is retrospective rather than
-  contemporaneous, and has `mode: "init"` in its frontmatter so
-  scheduled runs treat it as immutable.
-- Tone should be welcoming — this is likely the first post a visitor
-  reads — but honest: frame it as reading the commit log, not as
-  reporting on work you were present for.
-- **Anchors**: record `commitRange: <first-commit-sha>..<HEAD-sha>` and `bodyHash` in frontmatter. Journal posts are immutable once written; `update` never regenerates them, but the anchor is used by the *next* digest to find its start point. The `bodyHash` is present for consistency even though digest/update don't gate on it.
+**`docs/content/journal/*.mdx` — backfill posts**
+
+Journal generation branches on `journal.backfill` in config.
+
+**Runtime fallback rules (important).** JSON Schema `default` fields
+are annotations — most validators do NOT substitute them at parse
+time. So `init` and `update` MUST apply these defaults explicitly
+when reading config:
+
+- If `journal.backfill` is missing → treat as `true`.
+- If `journal.backfillLimit` is missing → treat as `12`.
+- If `journal.backfillLimit` is present and less than 2 → reject
+  the config with a specific error pointing the user at the schema
+  constraint. Do NOT silently clamp; that hides the misconfiguration.
+
+The `backfillLimit: 1` case is rejected specifically because the
+collapse algorithm (step 4 below) keeps `backfillLimit - 1` recent
+buckets and dates the rollup relative to the oldest kept one — with
+zero kept buckets, the rollup has no reference point. Users who want
+a single post should set `backfill: false` (which writes one welcome
+post) rather than `backfillLimit: 1`.
+
+**If `journal.backfill === true`** (default):
+
+1. **Walk history chronologically**:
+   ```bash
+   git log --reverse --no-merges --format='%H|%aI|%s'
+   ```
+2. **Bucket commits by cadence** (from `journal.cadence`):
+   - `weekly`: week starts Monday 00:00 in the author's timezone (use
+     commit's `%aI` date). Group commits by ISO week.
+   - `biweekly`: every other Monday; pair adjacent weeks.
+   - `monthly`: first of month.
+   - `manual`: fall back to `weekly` for bucketing; the cadence field
+     only governs scheduled digests, not backfill.
+3. **Drop buckets with fewer than `journal.minCommitsPerPost` commits**
+   — no "quiet week" filler for dead periods.
+4. **Apply the cap**. If more than `journal.backfillLimit` buckets
+   remain, keep the most recent `backfillLimit - 1` buckets as
+   individual posts and collapse all older buckets into one "Early
+   history" roundup post (date = last commit of the oldest kept
+   bucket minus one second, so it sorts first chronologically).
+5. **For each kept bucket**, generate one post:
+   - Filename: `{YYYY-MM-DD}-{slug}.mdx` where date is the bucket's
+     last commit date and slug is kebab-case derived from the post's
+     headline (the model picks a headline; see
+     `prompts/journal-system.md` §Inaugural-and-backfill).
+   - Frontmatter:
+     ```yaml
+     date: "{last-commit-date}"
+     mode: "backfill"
+     commitRange: "{first-sha}..{last-sha}"
+     generatedBy: "docent"
+     generatedAt: "{ISO timestamp}"
+     bodyHash: "{SHA-256 of body, computed per the procedure below}"
+     ```
+   - Apply the **Inaugural and backfill posts** section of
+     `prompts/journal-system.md`. These posts are retrospective
+     reconstructions, not contemporaneous reporting — frame them
+     honestly ("Looking at the commits from this period, …").
+   - The oldest backfill post implicitly opens the archive; do NOT
+     also write a separate welcome/inaugural post.
+
+**If `journal.backfill === false`**:
+
+Write a single `docs/content/journal/{YYYY-MM-DD}-inaugural.mdx` using
+the "project so far" approach — whole-repo-history scope, welcoming
+first-visitor voice, `mode: "init"`, `commitRange: {first-sha}..{HEAD-sha}`,
+plus `bodyHash`. Follow the **Inaugural and backfill posts** section
+of `prompts/journal-system.md` — retrospective, honest framing.
+
+**Why a cap matters**: cost scales linearly with bucket count. A
+5-year repo on weekly cadence is 260 Claude calls uncapped. With
+`backfillLimit: 12` it's 13 calls regardless of repo age.
+
+**Honesty with history**: force-pushed or rebased commits produce
+timestamps that don't reflect when work actually happened. Don't try
+to work around this; just note it in the init PR body so the
+maintainer knows the backfilled dates are git-authoritative, not
+memory-authoritative.
 
 ---
 
@@ -296,7 +382,16 @@ This PR scaffolds a Docent-maintained site at `/docs`.
 - Overview page based on this repo's README and structure
 - Status page summarizing {{N}} open issues
 - Changelog with {{N}} release entries
-- Inaugural journal post
+- **{{N}} backfill journal posts** covering the repo's history
+  ({{bucket description}}):
+  {{each filename on its own line, oldest first}}
+
+> **About the backfill posts**: these are **retrospective
+> reconstructions** from the commit log, not contemporaneous reporting.
+> Please scan-check each post — Docent is doing archaeology, not
+> remembering what you were actually thinking at the time. Dates are
+> git-authoritative; any force-pushed or rebased history will produce
+> dates that don't reflect when work really happened.
 
 ## Next steps
 

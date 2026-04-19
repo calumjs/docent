@@ -83,6 +83,13 @@ These rules apply regardless of which mode is running:
    runs. A maintainer who wants to re-theme invokes the analysis step
    explicitly ("Docent, re-analyze the design").
 
+8. **Journal posts are immutable once written.** Posts under
+   `docs/content/journal/*.mdx` are append-only regardless of their
+   `mode` (`init`, `backfill`, or `digest`). Scheduled runs never
+   rewrite existing posts — `digest` only adds new ones, `update`
+   doesn't touch journal at all. A maintainer who wants to correct a
+   post edits it by hand; Docent will respect the edit.
+
 ## Configuration
 
 Read `docent.config.json` at the repo root. Schema is defined in
