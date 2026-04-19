@@ -1,6 +1,6 @@
 {
   "name": "docent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Claude skill that turns a GitHub repo into a public-facing, self-maintaining website.",
   "homepage": "https://github.com/calumjs/docent",
   "license": "MIT",
