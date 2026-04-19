@@ -1,0 +1,46 @@
+---
+title: "Launch day: five issues, six merges, one meta-bug"
+date: "2026-04-19"
+summary: "Docent went from scaffold to plugin to adaptive daily routine in the space of a day, and found real bugs in itself along the way."
+tags: ["launch", "dogfood"]
+generatedBy: "docent"
+generatedAt: "2026-04-19T05:00:00Z"
+mode: "digest"
+commitRange: "91b005b..b3cf902"
+bodyHash: "627426064f217f10b7bab01c3c3805a8fa89347ac201e4525cb323d7e9fa82fb"
+---
+
+Yesterday's inaugural post described the scaffold landing. A day later, the scaffold has been repackaged as a Claude Code plugin, rewritten against five issues, reviewed adversarially, and reshaped by a bug it found in itself. The site you're reading now is the same site, maintained by the same tool, running against its own code.
+
+## From a directory drop to a marketplace install
+
+Docent started as a bundle users were expected to copy into `.claude/skills/docent/` of their own repo. That worked, but it's a lot of files to commit into someone else's project just to use the tool. The whole thing got repackaged as a Claude Code plugin — two-command install, files live in Claude Code's cache, user repos get only the generated site and the deploy workflow.
+
+The restructure surfaced two real bugs on the first deploy: a missing `docs/package-lock.json` that broke the `npm ci` step, and an off-by-one in every relative import of the Astro template. Both got fixed and baked into the plugin so future installs don't hit either.
+
+## Five issues, five PRs, five adversarial reviews
+
+With the plugin shape settled, Docent's own repo picked up five issues describing gaps the install run had surfaced. Each got a dedicated PR; each PR got a Codex adversarial-review pass in parallel. Four of the five came back with findings that stuck:
+
+- **Self-contained routines (#3)** — the scheduled prompts assumed the plugin was already installed in the remote environment, which it isn't; Codex flagged the unpinned marketplace install and DST drift in UTC cron.
+- **Source anchors (#4)** — the ownership heuristic trusted the commit-subject prefix alone; Codex pointed out it was spoofable, and that `status.json`'s count-plus-newest-timestamp could miss real changes.
+- **Backfill journal (#2)** — `backfillLimit: 1` made the collapse algorithm ill-defined.
+- **Suggest skill (#6)** — dumping raw `docent.config.json` into a public issue leaked project identity for users of private repos.
+
+All four findings shipped as review-response commits on the same branches before merge. Worth noting: the adversarial framing produced consistently useful output; the approving verdicts were short, the needs-attention ones were specific.
+
+## The meta-bug
+
+Running `update` mode on this repo after the five PRs landed turned up a pathology in the rule it had just merged. The ownership check said "any non-Docent commit in a file's history marks it human-owned forever." The file's history included two of my own PR-work commits without the `Docent:` prefix — so `status.json` was flagged as permanently co-owned, and update refused to regenerate it even though the anchor had drifted to empty-set.
+
+The fix relaxes the rule: find the last Docent-authored commit in the file's history, and only look at commits after it. Pre-invariant history doesn't poison files forever; the clock resets as soon as Docent writes with the correct prefix. The attack vector stays caught by the body-hash signal on MDX files.
+
+## One routine, adaptive output
+
+The original design had two scheduled routines: a daily update and a weekly Monday digest. That produced a visible gap on launch day — the site had one inaugural post for hours after a string of PR merges, because the digest wouldn't fire until Monday. Fixed schedules are the wrong abstraction for narrative content.
+
+Update and digest merged into a single daily routine. Each morning it checks what's stale, decides whether there's enough journal-worthy activity to write about, and produces a PR containing whatever combination makes sense — content refresh, new journal post, both, or nothing. The decision is agent judgment, not a threshold; the prompt's rough bar is "≥ 3 merged PRs or ≥ 10 commits and ≥ 2 days since the last post," but ultimately, "honest silence beats padded prose." Digest mode is still available for "write a post about X" on demand.
+
+## Where that leaves things
+
+Plugin version is `0.2.0`. One routine runs daily at 08:00 Sydney. The live dogfood site is current, the suggest mode is in place, backfill journal is specified (though the oldest post here is still the inaugural — no backfill was needed on a one-day-old repo). The next iteration is whatever the next time someone installs Docent against a real project surfaces — that's the feedback loop the whole thing was designed to run on.
