@@ -1,0 +1,23 @@
+---
+title: "Two months later: link fixes and a GSD integration proposal"
+date: "2026-06-21"
+summary: "A production 404, a footer correction, and a proposal to surface GSD phase artifacts on the status and journal pages."
+tags: ["maintenance", "proposals"]
+generatedBy: "docent"
+generatedAt: "2026-06-21T00:00:00Z"
+mode: "digest"
+commitRange: "b3cf902..ea53d94"
+bodyHash: "7b8a81ea28975baf67aa371a010ca4712ca98e6d75e1fff51cab3e911bbfc782"
+---
+
+The two months since the launch-day post were quiet — a short burst of small fixes after the initial activity settled, then nothing new merged. Three things moved: two link fixes in the generated site, and one design proposal worth tracking.
+
+## Generated links pointing nowhere
+
+The `overview.mdx` shipped with two markdown links pointing at `/report-bug/` and `/request-feature/`. On GitHub Pages (served from `/docent/`), neither resolved — Astro's MDX renderer doesn't rewrite relative URLs against the base path ([#14](https://github.com/calumjs/docent/pull/14)). The fix switches internal site links to inline HTML with `import.meta.env.BASE_URL`; the overview and journal prompts were updated so future runs don't regenerate the broken pattern.
+
+A second fix corrected the "Maintained with Docent" footer link, which resolved to the GitHub homepage rather than the Docent repository. Applied to both the live docs and the plugin template.
+
+## GSD integration on the table
+
+Issue [#15](https://github.com/calumjs/docent/issues/15) proposes surfacing [GSD](https://github.com/gsd-build/get-shit-done) phase artifacts — the `discuss / plan / execute / verify` spec files that repos using GSD maintain — on the Docent status and journal pages. The proposal covers detection, a new "Roadmap" content surface, mode and config changes, and the invariant that Docent stays read-only on GSD artifacts. No implementation is open yet; the issue is a design-mapping exercise before a spec PR.
