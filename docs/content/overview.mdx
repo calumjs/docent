@@ -2,73 +2,57 @@
 title: "Docent"
 tagline: "Turn any GitHub repo into a public-facing, self-maintaining website."
 generatedBy: "docent"
-generatedAt: "2026-04-19T08:00:00Z"
+generatedAt: "2026-09-16T00:00:00Z"
 mode: "update"
 sourceFiles:
   - path: "README.md"
     sha: "088a040fa29e82987c82c54ad564c5602cd9f7de"
-bodyHash: "2b1a672d2f96a3e516c7df35e200a0cdc61f272338862a6c5f52d9db2ff45397"
+bodyHash: "d37ef0b647f781885a8fd59c15b767fd05e9e0025584f233ce4a4258d9b3388c"
 ---
 
-Docent turns a GitHub repository into a public-facing static website. It reads
-the repo — commits, issues, releases, the README — and writes a small site that
-explains what the project is, what's been shipping, and what's open. The site
-lives in `/docs` inside the same repo, deploys to GitHub Pages, and updates
-itself on a schedule through Claude Code Routines.
+Docent turns a GitHub repository into a public-facing static website. It reads commits, issues, releases, and the README, then writes a small site that explains what the project is, what has been shipping, and what is open. The site lives in `/docs` inside the same repo and deploys to GitHub Pages.
 
 ## Who it's for
 
-A solo maintainer or a small team with a project that deserves a better
-introduction than a README. Docent is useful when people show up from search or
-a link and want a human-readable answer to "what is this and should I care" —
-and currently get a wall of markdown.
+A solo maintainer or small team with a project that deserves a clearer introduction than a README. Docent is useful when visitors arrive from search or a shared link and want a human-readable answer to "what is this and should I care?"
 
-Docent is not a replacement for API documentation tools like Docusaurus or
-MkDocs. Those describe how a library works. Docent describes what a project
-*is*: the pitch, the status, the story so far — for visitors who might never
-read the code.
+It is not a replacement for API documentation tools like Docusaurus or MkDocs. Those describe how a library works. Docent describes what a project *is*: the pitch, the current status, and the story so far — for visitors who might never read the code.
+
+## What it produces
+
+A live site at `username.github.io/project` with five pages:
+
+- **Overview** — an explanation of what the project is and who it is for, generated from the README
+- **Journal** — posts summarizing recent activity on a configurable cadence
+- **Status** — open issues grouped and summarized, with known bugs and in-progress work called out
+- **Report a bug / Request a feature** — forms that open pre-filled GitHub issues in a new tab
+- **Changelog** — human-readable release notes derived from tags and merged PRs
+
+No hosted service, no API keys, no backend. Content generation runs through your Claude Code subscription. Forms submit by opening pre-filled GitHub issues.
 
 ## How it works
 
-Two install commands bring the skill into any Claude Code session. From there,
-one conversation sets up the site: Docent asks about tone and cadence, reads
-the repo for design signals, scaffolds an Astro site under `/docs`, generates
-the initial content, and opens a pull request.
+Docent is a Claude Code plugin. Two install commands bring it into any Claude Code session. One conversation sets up the site: the skill asks about tone and cadence, reads the repo for design signals, scaffolds an Astro site under `/docs`, generates the initial content, and opens a pull request.
 
-After merging, a daily Routine keeps the site current. The same Routine decides
-whether to refresh the status page, write a journal post, or both — based on
-what's happened in the repo since the last run. Nothing goes live without a
-pull request.
+After the PR is merged, a daily Routine keeps the site current. Each morning the Routine checks what has drifted — the README, open issues, new tags — and decides whether to refresh the content, write a journal post, both, or nothing. Nothing goes live without a pull request.
 
-Docent has five modes, each a procedure the skill runs when you ask for it:
-
-- **`init`** scaffolds the `/docs` site and writes the first content.
-- **`update`** refreshes the status page and overview as issues and the README change.
-- **`digest`** writes a journal post summarizing recent activity.
-- **`release`** turns a new tag into a changelog entry.
-- **`triage`** drafts suggestions for new issues, without ever touching them automatically.
-
-The generated content — overview, journal posts, status summaries, changelog —
-lives in `/docs/content/` as structured MDX and JSON. An Astro site template
-in `/docs/src/` renders it. The two halves are owned separately: Docent writes
-the content; you own the presentation.
+You can also invoke Docent manually: "Docent, write a journal post about the auth refactor."
 
 ## Getting started
 
-Install the skill into your repo, then open Claude Code and say:
+In any Claude Code session inside your target repo:
 
 ```
-set up Docent for this repo
+/plugin marketplace add calumjs/docent
+/plugin install docent@docent
 ```
 
-Docent walks through the rest. See the [README](https://github.com/calumjs/docent)
-for the full install steps, or the [SPEC](https://github.com/calumjs/docent/blob/master/SPEC.md)
-for the design.
+Then say:
+
+> **set up Docent for this repo**
+
+The skill walks through the rest. See the [README](https://github.com/calumjs/docent) for the full steps, or the [SPEC](https://github.com/calumjs/docent/blob/master/SPEC.md) for the design.
 
 ## What this site is
 
-This site is Docent's own dogfood. Every page you can reach from the nav
-was generated by the same skill Docent ships to users. If something here
-reads badly or looks wrong, that's a signal the skill itself needs work —
-and you can help by <a href={`${import.meta.env.BASE_URL}report-bug/`}>reporting a bug</a> or
-<a href={`${import.meta.env.BASE_URL}request-feature/`}>proposing a fix</a>.
+This site is Docent's own dogfood. Every page you can reach from the nav was generated by the same skill Docent ships to users. If something here reads badly or looks wrong, that is a signal the skill itself needs work — and you can help by <a href={`${import.meta.env.BASE_URL}report-bug/`}>reporting a bug</a> or <a href={`${import.meta.env.BASE_URL}request-feature/`}>proposing a fix</a>.
