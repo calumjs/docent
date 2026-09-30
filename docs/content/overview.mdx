@@ -2,12 +2,12 @@
 title: "Docent"
 tagline: "Turn any GitHub repo into a public-facing, self-maintaining website."
 generatedBy: "docent"
-generatedAt: "2026-04-19T08:00:00Z"
+generatedAt: "2026-09-30T22:08:07Z"
 mode: "update"
 sourceFiles:
   - path: "README.md"
     sha: "088a040fa29e82987c82c54ad564c5602cd9f7de"
-bodyHash: "2b1a672d2f96a3e516c7df35e200a0cdc61f272338862a6c5f52d9db2ff45397"
+bodyHash: "5e4bed782c81fc109b33aaa64e2e80f1e6a81979f449419add7fb95ad5869325"
 ---
 
 Docent turns a GitHub repository into a public-facing static website. It reads
@@ -35,18 +35,13 @@ one conversation sets up the site: Docent asks about tone and cadence, reads
 the repo for design signals, scaffolds an Astro site under `/docs`, generates
 the initial content, and opens a pull request.
 
-After merging, a daily Routine keeps the site current. The same Routine decides
-whether to refresh the status page, write a journal post, or both — based on
-what's happened in the repo since the last run. Nothing goes live without a
-pull request.
-
-Docent has five modes, each a procedure the skill runs when you ask for it:
-
-- **`init`** scaffolds the `/docs` site and writes the first content.
-- **`update`** refreshes the status page and overview as issues and the README change.
-- **`digest`** writes a journal post summarizing recent activity.
-- **`release`** turns a new tag into a changelog entry.
-- **`triage`** drafts suggestions for new issues, without ever touching them automatically.
+After merging, a daily Routine keeps the site current. The Routine runs
+`update` mode, which decides for itself what needs attention each day:
+refreshing the overview if the README changed, updating the status page if
+issues changed, adding a changelog entry for a new release, and writing a
+journal post when enough activity has landed to make a readable summary. If
+nothing changed, it exits without touching anything. Nothing goes live without
+a pull request.
 
 The generated content — overview, journal posts, status summaries, changelog —
 lives in `/docs/content/` as structured MDX and JSON. An Astro site template
