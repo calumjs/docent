@@ -2,73 +2,79 @@
 title: "Docent"
 tagline: "Turn any GitHub repo into a public-facing, self-maintaining website."
 generatedBy: "docent"
-generatedAt: "2026-04-19T08:00:00Z"
+generatedAt: "2026-10-05T08:00:00Z"
 mode: "update"
 sourceFiles:
   - path: "README.md"
     sha: "088a040fa29e82987c82c54ad564c5602cd9f7de"
-bodyHash: "2b1a672d2f96a3e516c7df35e200a0cdc61f272338862a6c5f52d9db2ff45397"
+bodyHash: "5a2a515a1e7e62738d5dcde192f5d7b87e2fbcd8d69bda21b48cdd7605305ed6"
 ---
 
-Docent turns a GitHub repository into a public-facing static website. It reads
-the repo — commits, issues, releases, the README — and writes a small site that
-explains what the project is, what's been shipping, and what's open. The site
-lives in `/docs` inside the same repo, deploys to GitHub Pages, and updates
-itself on a schedule through Claude Code Routines.
+Docent is a Claude Code plugin that reads a GitHub repo — its commits, issues,
+releases, and README — and produces a static website that explains the project
+to visitors who may never read the code. The site deploys to GitHub Pages from
+a `/docs` folder in the same repo. No hosted service, no API keys, no
+additional backend is required.
 
 ## Who it's for
 
-A solo maintainer or a small team with a project that deserves a better
-introduction than a README. Docent is useful when people show up from search or
-a link and want a human-readable answer to "what is this and should I care" —
-and currently get a wall of markdown.
+A maintainer or small team whose project deserves a clearer public face than
+a README provides. Docent is most useful when visitors arrive from a link or
+search result and need a quick answer to "what is this and should I care" —
+and what they find today is a dense markdown file aimed at contributors.
 
-Docent is not a replacement for API documentation tools like Docusaurus or
-MkDocs. Those describe how a library works. Docent describes what a project
-*is*: the pitch, the status, the story so far — for visitors who might never
-read the code.
+Docent is not a substitute for API reference tools like Docusaurus or MkDocs.
+Those describe how a library works in detail. Docent describes what a project
+*is*: the pitch, the current status, the recent activity — for people deciding
+whether to use it or follow it.
+
+## What it produces
+
+After setup, Docent generates and maintains five sections:
+
+- **Overview** — an explanation of what the project is and who it's for (this page)
+- **Journal** — posts summarizing recent activity on a configurable cadence
+- **Status** — open issues grouped and summarized, updated on each run
+- **Changelog** — release notes derived from tags and merged pull requests
+- **Bug report / Feature request** — forms that open pre-filled GitHub issues
+
+All content lives in `/docs/content/` as structured MDX and JSON. An Astro
+template in `/docs/src/` renders it. Docent owns the content files; you own
+the presentation layer.
 
 ## How it works
 
-Two install commands bring the skill into any Claude Code session. From there,
-one conversation sets up the site: Docent asks about tone and cadence, reads
-the repo for design signals, scaffolds an Astro site under `/docs`, generates
-the initial content, and opens a pull request.
+Install Docent into a Claude Code session with two commands:
 
-After merging, a daily Routine keeps the site current. The same Routine decides
-whether to refresh the status page, write a journal post, or both — based on
-what's happened in the repo since the last run. Nothing goes live without a
-pull request.
+```
+/plugin marketplace add calumjs/docent
+/plugin install docent@docent
+```
 
-Docent has five modes, each a procedure the skill runs when you ask for it:
+Then say **"set up Docent for this repo."** The skill's `init` procedure
+takes it from there: it asks about tone and cadence, reads the repo for
+design signals, scaffolds the Astro site, generates the initial content, and
+opens a pull request. After merging, two manual steps complete the setup —
+enabling GitHub Pages and scheduling a daily Routine. The Routine runs on
+your Claude Code subscription tokens and decides for itself whether to refresh
+content, write a journal post, or do nothing — based on what's changed since
+the last run. Nothing goes live without a pull request.
 
-- **`init`** scaffolds the `/docs` site and writes the first content.
-- **`update`** refreshes the status page and overview as issues and the README change.
-- **`digest`** writes a journal post summarizing recent activity.
-- **`release`** turns a new tag into a changelog entry.
-- **`triage`** drafts suggestions for new issues, without ever touching them automatically.
-
-The generated content — overview, journal posts, status summaries, changelog —
-lives in `/docs/content/` as structured MDX and JSON. An Astro site template
-in `/docs/src/` renders it. The two halves are owned separately: Docent writes
-the content; you own the presentation.
+Docent also responds to on-demand requests: **"write a journal post about the
+auth refactor"** or **"generate release notes for v2.1"** invoke the relevant
+mode directly.
 
 ## Getting started
 
-Install the skill into your repo, then open Claude Code and say:
-
-```
-set up Docent for this repo
-```
-
-Docent walks through the rest. See the [README](https://github.com/calumjs/docent)
-for the full install steps, or the [SPEC](https://github.com/calumjs/docent/blob/master/SPEC.md)
-for the design.
+[See the README](https://github.com/calumjs/docent) for install steps and
+prerequisites, or the
+[SPEC](https://github.com/calumjs/docent/blob/master/SPEC.md) for the full
+design and schema reference.
 
 ## What this site is
 
-This site is Docent's own dogfood. Every page you can reach from the nav
-was generated by the same skill Docent ships to users. If something here
-reads badly or looks wrong, that's a signal the skill itself needs work —
-and you can help by <a href={`${import.meta.env.BASE_URL}report-bug/`}>reporting a bug</a> or
+This site is Docent's own dogfood. Every page was generated by the same skill
+Docent ships to users. If something reads badly or looks wrong, that is a
+signal the skill itself needs work — and you can help by
+<a href={`${import.meta.env.BASE_URL}report-bug/`}>reporting a bug</a> or
 <a href={`${import.meta.env.BASE_URL}request-feature/`}>proposing a fix</a>.
