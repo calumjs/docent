@@ -2,56 +2,38 @@
 title: "Docent"
 tagline: "Turn any GitHub repo into a public-facing, self-maintaining website."
 generatedBy: "docent"
-generatedAt: "2026-04-19T08:00:00Z"
+generatedAt: "2026-11-09T08:00:00Z"
 mode: "update"
 sourceFiles:
   - path: "README.md"
     sha: "088a040fa29e82987c82c54ad564c5602cd9f7de"
-bodyHash: "2b1a672d2f96a3e516c7df35e200a0cdc61f272338862a6c5f52d9db2ff45397"
+bodyHash: "91d728c4c887aa68fd08cf05c242e2e7e2a1a1a6728e3b330cede334588944f1"
 ---
 
-Docent turns a GitHub repository into a public-facing static website. It reads
-the repo — commits, issues, releases, the README — and writes a small site that
-explains what the project is, what's been shipping, and what's open. The site
-lives in `/docs` inside the same repo, deploys to GitHub Pages, and updates
-itself on a schedule through Claude Code Routines.
+Docent turns a GitHub repository into a public-facing static website. It reads the repo — the README, commits, issues, and release tags — and produces a site that explains what the project is, what has been shipping, and what is currently open. The site lives under `/docs` in the same repo, deploys to GitHub Pages, and updates on a schedule.
 
 ## Who it's for
 
-A solo maintainer or a small team with a project that deserves a better
-introduction than a README. Docent is useful when people show up from search or
-a link and want a human-readable answer to "what is this and should I care" —
-and currently get a wall of markdown.
+A solo maintainer or a small team with a project that deserves more than a wall of markdown. When someone arrives from a search result or a link and wants to know what the project is and whether it's worth their time, the README is usually the wrong document. It's written for contributors, not visitors. Docent generates something different: a short, structured site aimed at the person who doesn't know what they're looking at yet.
 
-Docent is not a replacement for API documentation tools like Docusaurus or
-MkDocs. Those describe how a library works. Docent describes what a project
-*is*: the pitch, the status, the story so far — for visitors who might never
-read the code.
+A developer building a tool for other developers is the typical case. The project has users, or could have users, but the entry point is too technical to work as a landing page. Docent doesn't replace documentation — it provides the introduction that documentation assumes you don't need.
 
 ## How it works
 
-Two install commands bring the skill into any Claude Code session. From there,
-one conversation sets up the site: Docent asks about tone and cadence, reads
-the repo for design signals, scaffolds an Astro site under `/docs`, generates
-the initial content, and opens a pull request.
+Docent is a Claude Code skill. Install it with two commands, then run its `init` mode and it asks about tone and cadence, reads the repo for design signals, scaffolds an Astro site under `/docs`, generates the initial content, and opens a pull request. After merging, two manual steps enable GitHub Pages and wire up a daily Routine.
 
-After merging, a daily Routine keeps the site current. The same Routine decides
-whether to refresh the status page, write a journal post, or both — based on
-what's happened in the repo since the last run. Nothing goes live without a
-pull request.
+The Routine runs on a schedule. Each day it checks whether the overview, status page, or changelog has drifted from the current repo state and regenerates whatever has. On days when enough has shipped, it also writes a journal post. Nothing goes live without a pull request.
 
-Docent has five modes, each a procedure the skill runs when you ask for it:
+Docent has six modes:
 
-- **`init`** scaffolds the `/docs` site and writes the first content.
-- **`update`** refreshes the status page and overview as issues and the README change.
+- **`init`** scaffolds the site and writes the first content.
+- **`update`** refreshes content as issues, the README, and tags change.
 - **`digest`** writes a journal post summarizing recent activity.
 - **`release`** turns a new tag into a changelog entry.
-- **`triage`** drafts suggestions for new issues, without ever touching them automatically.
+- **`triage`** drafts suggestions for new issues, without touching them.
+- **`suggest`** files feedback about Docent itself.
 
-The generated content — overview, journal posts, status summaries, changelog —
-lives in `/docs/content/` as structured MDX and JSON. An Astro site template
-in `/docs/src/` renders it. The two halves are owned separately: Docent writes
-the content; you own the presentation.
+Generated content — overview, journal posts, status summaries, changelog entries — lives in `/docs/content/` as MDX and JSON. An Astro template in `/docs/src/` renders it. The two halves are owned separately: Docent writes the content; the Astro template is yours to modify.
 
 ## Getting started
 
@@ -61,14 +43,8 @@ Install the skill into your repo, then open Claude Code and say:
 set up Docent for this repo
 ```
 
-Docent walks through the rest. See the [README](https://github.com/calumjs/docent)
-for the full install steps, or the [SPEC](https://github.com/calumjs/docent/blob/master/SPEC.md)
-for the design.
+The `init` mode walks through the rest. See the [README](https://github.com/calumjs/docent) for the full install steps.
 
 ## What this site is
 
-This site is Docent's own dogfood. Every page you can reach from the nav
-was generated by the same skill Docent ships to users. If something here
-reads badly or looks wrong, that's a signal the skill itself needs work —
-and you can help by <a href={`${import.meta.env.BASE_URL}report-bug/`}>reporting a bug</a> or
-<a href={`${import.meta.env.BASE_URL}request-feature/`}>proposing a fix</a>.
+This site is Docent's own dogfood. The overview, journal, status page, and changelog are all generated by the same skill Docent ships. If something here reads badly or looks wrong, that's a signal worth reporting — either <a href={`${import.meta.env.BASE_URL}report-bug/`}>as a bug</a> or <a href={`${import.meta.env.BASE_URL}request-feature/`}>as a feature request</a>.
